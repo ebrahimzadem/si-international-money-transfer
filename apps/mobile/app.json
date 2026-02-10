@@ -1,0 +1,42 @@
+{
+  "expo": {
+    "name": "Si Crypto",
+    "slug": "si-crypto",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "plugins": [
+      "expo-font"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.sicrypto.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "package": "com.sicrypto.app",
+      "googleServicesFile": "./google-services.json",
+      "edgeToEdgeEnabled": true,
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "firebaseProjectId": "si-sends-money",
+      "firebaseApiKey": "AIzaSyBa7mdKLNEm7jWbRIjBk4Op3eksRt_IkLc",
+      "firebaseSenderId": "295724880003",
+      "firebaseAppId": "1:295724880003:android:b5298b84fb90edd60d0bb6"
+    }
+  }
+}

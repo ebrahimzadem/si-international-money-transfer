@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "295724880003",
+    "project_id": "si-sends-money",
+    "storage_bucket": "si-sends-money.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:295724880003:android:b5298b84fb90edd60d0bb6",
+        "android_client_info": {
+          "package_name": "com.sicrypto.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBa7mdKLNEm7jWbRIjBk4Op3eksRt_IkLc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
