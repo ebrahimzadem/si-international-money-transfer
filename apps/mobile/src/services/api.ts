@@ -1,7 +1,9 @@
 import axios, { AxiosInstance } from 'axios';
 import { Platform } from 'react-native';
 
-const API_URL = 'http://localhost:3000';
+const DEV_URL = 'http://localhost:3000';
+const PROD_URL = 'https://si-backend-x8bn.onrender.com';
+const API_URL = __DEV__ ? DEV_URL : PROD_URL;
 
 // Web-safe storage (SecureStore crashes on web)
 const Storage = {
