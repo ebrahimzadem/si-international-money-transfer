@@ -97,6 +97,6 @@ temp/
 # Claude
 .claude/
 
-# Blockchain
-wallets/
-seeds/
+# Blockchain (root-level data dirs only)
+/wallets/
+/seeds/
