@@ -36,7 +36,11 @@
       "firebaseProjectId": "si-sends-money",
       "firebaseApiKey": "AIzaSyBa7mdKLNEm7jWbRIjBk4Op3eksRt_IkLc",
       "firebaseSenderId": "295724880003",
-      "firebaseAppId": "1:295724880003:android:b5298b84fb90edd60d0bb6"
-    }
+      "firebaseAppId": "1:295724880003:android:b5298b84fb90edd60d0bb6",
+      "eas": {
+        "projectId": "348ba09a-6109-41a3-a305-9bf4f879a67e"
+      }
+    },
+    "owner": "ebrahimzadem"
   }
 }

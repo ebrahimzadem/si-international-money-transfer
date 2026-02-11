@@ -1,0 +1,19 @@
+# Ignore monorepo files not needed for mobile build
+../../apps/backend
+../../packages
+../../.github
+../../render.yaml
+../../turbo.json
+../../CNAME
+
+# Local dev files
+node_modules
+dist
+.expo
+*.crt
+*.key
+*.p12
+*.jks
+credentials.json
+android-keystore.*
+si-crypto.*

@@ -5,7 +5,6 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Alert,
   ActivityIndicator,
   ScrollView,
   Animated,
@@ -14,6 +13,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../store';
 import api from '../../services/api';
+import { useAlert } from '../../components/WebSafeAlert';
 import { Colors, Spacing, FontSizes, BorderRadius } from '../../theme/colors';
 
 const TOKENS = [
@@ -29,6 +29,7 @@ export default function SendScreen({ navigation }: any) {
   const [toAddress, setToAddress] = useState('');
   const [amount, setAmount] = useState('');
   const [loading, setLoading] = useState(false);
+  const { showAlert, AlertComponent } = useAlert();
 
   const headerFade = useRef(new Animated.Value(0)).current;
   const headerSlide = useRef(new Animated.Value(-20)).current;
@@ -69,52 +70,53 @@ export default function SendScreen({ navigation }: any) {
   const selectedBalance = balances.find((b) => b.token === selectedToken);
   const tokenInfo = TOKENS.find((t) => t.key === selectedToken)!;
 
+  const executeSend = async () => {
+    setLoading(true);
+    try {
+      await api.sendTransaction(selectedToken, toAddress, amount);
+      showAlert('Success', 'Transaction sent successfully!', [
+        { text: 'OK', onPress: () => navigation.goBack() },
+      ]);
+    } catch (error: any) {
+      showAlert(
+        'Transaction Failed',
+        error.response?.data?.message || 'Could not send transaction'
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSend = async () => {
     if (!toAddress || !amount) {
-      Alert.alert('Error', 'Please fill in all fields');
+      showAlert('Error', 'Please fill in all fields');
       return;
     }
 
     const amountNum = parseFloat(amount);
     if (isNaN(amountNum) || amountNum <= 0) {
-      Alert.alert('Error', 'Invalid amount');
+      showAlert('Error', 'Invalid amount');
       return;
     }
 
     if (selectedBalance && amountNum > parseFloat(selectedBalance.balance)) {
-      Alert.alert('Error', 'Insufficient balance');
+      showAlert('Error', 'Insufficient balance');
       return;
     }
 
-    Alert.alert(
+    showAlert(
       'Confirm Transaction',
       `Send ${amount} ${selectedToken} to ${toAddress.slice(0, 10)}...?`,
       [
         { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Send',
-          onPress: async () => {
-            setLoading(true);
-            try {
-              await api.sendTransaction(selectedToken, toAddress, amount);
-              Alert.alert('Success', 'Transaction sent successfully!');
-              navigation.goBack();
-            } catch (error: any) {
-              Alert.alert(
-                'Transaction Failed',
-                error.response?.data?.message || 'Could not send transaction'
-              );
-            } finally {
-              setLoading(false);
-            }
-          },
-        },
+        { text: 'Send', onPress: executeSend },
       ]
     );
   };
 
   return (
     <View style={styles.container}>
+      {AlertComponent}
       {/* Header */}
       <LinearGradient
         colors={[Colors.primary, Colors.primaryLight]}

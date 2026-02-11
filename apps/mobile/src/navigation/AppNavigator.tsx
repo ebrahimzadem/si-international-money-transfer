@@ -12,6 +12,8 @@ import LoginScreen from '../screens/Auth/LoginScreen';
 import RegisterScreen from '../screens/Auth/RegisterScreen';
 import HomeScreen from '../screens/Home/HomeScreenNew';
 import SendScreen from '../screens/Send/SendScreen';
+import ReceiveScreen from '../screens/Receive/ReceiveScreen';
+import SwapScreen from '../screens/Swap/SwapScreen';
 import TransactionsScreen from '../screens/Transactions/TransactionsScreen';
 import ProfileScreen from '../screens/Profile/ProfileScreen';
 
@@ -141,6 +143,8 @@ export default function AppNavigator() {
           <>
             <Stack.Screen name="Main" component={MainTabs} />
             <Stack.Screen name="Send" component={SendScreen} />
+            <Stack.Screen name="Receive" component={ReceiveScreen} />
+            <Stack.Screen name="Swap" component={SwapScreen} />
           </>
         )}
       </Stack.Navigator>

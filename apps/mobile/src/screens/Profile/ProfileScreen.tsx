@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Alert,
   ScrollView,
   Animated,
 } from 'react-native';
@@ -14,6 +13,7 @@ import { RootState } from '../../store';
 import { clearUser } from '../../store/authSlice';
 import { clearBalances } from '../../store/walletSlice';
 import api from '../../services/api';
+import { useAlert } from '../../components/WebSafeAlert';
 import { Colors, Spacing, FontSizes, BorderRadius } from '../../theme/colors';
 
 interface MenuItemProps {
@@ -96,6 +96,7 @@ export default function ProfileScreen() {
   const dispatch = useDispatch();
   const { user } = useSelector((state: RootState) => state.auth);
   const { totalUsd } = useSelector((state: RootState) => state.wallet);
+  const { showAlert, AlertComponent } = useAlert();
 
   const headerFade = useRef(new Animated.Value(0)).current;
   const headerSlide = useRef(new Animated.Value(-30)).current;
@@ -125,7 +126,7 @@ export default function ProfileScreen() {
   }, []);
 
   const handleLogout = () => {
-    Alert.alert('Logout', 'Are you sure you want to logout?', [
+    showAlert('Logout', 'Are you sure you want to logout?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Logout',
@@ -139,11 +140,12 @@ export default function ProfileScreen() {
     ]);
   };
 
-  const userName = user?.email?.split('@')[0] || 'User';
+  const userName = user?.fullName || user?.email?.split('@')[0] || 'User';
   const initial = userName[0]?.toUpperCase() || 'U';
 
   return (
     <View style={styles.container}>
+      {AlertComponent}
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Profile Header with Gradient */}
         <LinearGradient

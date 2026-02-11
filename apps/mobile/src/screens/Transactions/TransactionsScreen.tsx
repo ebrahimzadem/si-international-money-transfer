@@ -218,14 +218,37 @@ function TransactionCard({ tx, index }: TxCardProps) {
 }
 
 export default function TransactionsScreen() {
-  const [transactions] = useState<Transaction[]>(MOCK_TRANSACTIONS);
+  const [transactions, setTransactions] = useState<Transaction[]>(MOCK_TRANSACTIONS);
   const [refreshing, setRefreshing] = useState(false);
   const [activeFilter, setActiveFilter] = useState<'all' | 'send' | 'receive' | 'swap'>('all');
 
   const headerFade = useRef(new Animated.Value(0)).current;
   const headerSlide = useRef(new Animated.Value(-20)).current;
 
+  const loadTransactions = async () => {
+    try {
+      const api = require('../../services/api').default;
+      const data = await api.getTransactions();
+      if (data && data.length > 0) {
+        const mapped: Transaction[] = data.map((tx: any) => ({
+          id: tx.id,
+          type: tx.direction === 'inbound' ? 'receive' : 'send',
+          token: tx.token,
+          amount: tx.amount,
+          toAddress: tx.toAddress || tx.to_address || '',
+          status: tx.status === 'confirmed' ? 'completed' : tx.status,
+          createdAt: tx.createdAt || tx.created_at,
+          usdValue: tx.usdValue || 0,
+        }));
+        setTransactions(mapped);
+      }
+    } catch {
+      // Keep mock data when API unavailable
+    }
+  };
+
   useEffect(() => {
+    loadTransactions();
     Animated.parallel([
       Animated.timing(headerFade, {
         toValue: 1,
@@ -243,7 +266,7 @@ export default function TransactionsScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await new Promise((r) => setTimeout(r, 1000));
+    await loadTransactions();
     setRefreshing(false);
   };
 

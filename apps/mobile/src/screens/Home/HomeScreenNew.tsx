@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../../store';
-import { setBalances, setLoading } from '../../store/walletSlice';
+import { setBalances } from '../../store/walletSlice';
 import api from '../../services/api';
 import BalanceHeader from '../../components/BalanceHeader';
 import CryptoCard from '../../components/CryptoCard';
@@ -46,7 +46,7 @@ export default function HomeScreen({ navigation }: any) {
     );
   }
 
-  const userName = user?.email?.split('@')[0] || 'User';
+  const userName = user?.fullName || user?.email?.split('@')[0] || 'User';
 
   return (
     <View style={styles.container}>
@@ -82,19 +82,19 @@ export default function HomeScreen({ navigation }: any) {
             icon="↓"
             label="Receive"
             gradient={['#10B981', '#059669']}
-            onPress={() => {}}
+            onPress={() => navigation.navigate('Receive')}
           />
           <ActionButton
             icon="⇄"
             label="Swap"
             gradient={['#8B5CF6', '#7C3AED']}
-            onPress={() => {}}
+            onPress={() => navigation.navigate('Swap')}
           />
           <ActionButton
             icon="$"
             label="Buy"
             gradient={['#F59E0B', '#D97706']}
-            onPress={() => {}}
+            onPress={() => navigation.navigate('Receive')}
           />
         </View>
 
