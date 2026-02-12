@@ -2,41 +2,38 @@ import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
-  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
   Image,
   Animated,
-  Platform,
+  TextInput,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Feather } from '@expo/vector-icons';
 import { useDispatch } from 'react-redux';
 import { setUser } from '../../store/authSlice';
 import api from '../../services/api';
-import { Colors, FontSizes, Spacing, BorderRadius } from '../../theme/colors';
+import { DSButton, DSInput, colors, typography, spacing, radii, shadows } from '../../design-system';
 
 type Step = 'form' | 'email-otp' | 'phone-otp';
 
 export default function RegisterScreen({ navigation }: any) {
   const dispatch = useDispatch();
 
-  // Form fields
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-
-  // OTP
   const [step, setStep] = useState<Step>('form');
   const [emailOtp, setEmailOtp] = useState('');
   const [phoneOtp, setPhoneOtp] = useState('');
-
-  // UI state
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
 
@@ -60,7 +57,6 @@ export default function RegisterScreen({ navigation }: any) {
     });
   };
 
-  // Step 1: Submit form → send email OTP
   const handleSubmitForm = async () => {
     if (!fullName.trim()) { showError('Please enter your full name'); return; }
     if (!email.trim()) { showError('Please enter your email'); return; }
@@ -80,7 +76,6 @@ export default function RegisterScreen({ navigation }: any) {
     }
   };
 
-  // Step 2: Verify email OTP → send phone OTP
   const handleVerifyEmail = async () => {
     if (emailOtp.length !== 6) { showError('Enter the 6-digit code'); return; }
 
@@ -97,7 +92,6 @@ export default function RegisterScreen({ navigation }: any) {
     }
   };
 
-  // Step 3: Verify phone OTP → register
   const handleVerifyPhone = async () => {
     if (phoneOtp.length !== 6) { showError('Enter the 6-digit code'); return; }
 
@@ -129,95 +123,78 @@ export default function RegisterScreen({ navigation }: any) {
     }
   };
 
-  const renderFormStep = () => (
+  const handleGoogleSignUp = () => {
+    showError('Google Sign-Up coming soon');
+  };
+
+  // ─── FORM STEP ───────────────────────────────────────────────────────
+
+  const renderForm = () => (
     <>
-      <Text style={styles.cardTitle}>Create Account</Text>
-      <Text style={styles.cardSubtitle}>Sign up to get started</Text>
+      <Text style={styles.heading}>Create account</Text>
+      <Text style={styles.subheading}>Sign up to start using Si</Text>
 
-      <View style={styles.inputGroup}>
-        <Text style={styles.inputLabel}>Full Name</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="John Doe"
-          placeholderTextColor={Colors.gray400}
-          value={fullName}
-          onChangeText={setFullName}
-          editable={!loading}
-        />
-      </View>
+      <DSInput
+        label="Full Name"
+        placeholder="John Doe"
+        value={fullName}
+        onChangeText={setFullName}
+        leftIcon="user"
+        editable={!loading}
+      />
 
-      <View style={styles.inputGroup}>
-        <Text style={styles.inputLabel}>Email</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="your@email.com"
-          placeholderTextColor={Colors.gray400}
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-          keyboardType="email-address"
-          editable={!loading}
-        />
-      </View>
+      <DSInput
+        label="Email"
+        placeholder="you@example.com"
+        value={email}
+        onChangeText={setEmail}
+        autoCapitalize="none"
+        keyboardType="email-address"
+        leftIcon="mail"
+        editable={!loading}
+      />
 
-      <View style={styles.inputGroup}>
-        <Text style={styles.inputLabel}>Phone Number</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="+1 (555) 123-4567"
-          placeholderTextColor={Colors.gray400}
-          value={phone}
-          onChangeText={setPhone}
-          keyboardType="phone-pad"
-          editable={!loading}
-        />
-      </View>
+      <DSInput
+        label="Phone Number"
+        placeholder="+1 (555) 123-4567"
+        value={phone}
+        onChangeText={setPhone}
+        keyboardType="phone-pad"
+        leftIcon="phone"
+        editable={!loading}
+      />
 
-      <View style={styles.inputGroup}>
-        <Text style={styles.inputLabel}>Password</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Minimum 8 characters"
-          placeholderTextColor={Colors.gray400}
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          editable={!loading}
-        />
-      </View>
+      <DSInput
+        label="Password"
+        placeholder="Minimum 8 characters"
+        value={password}
+        onChangeText={setPassword}
+        secureTextEntry={!showPassword}
+        leftIcon="lock"
+        rightIcon={showPassword ? 'eye-off' : 'eye'}
+        onRightIconPress={() => setShowPassword(!showPassword)}
+        editable={!loading}
+      />
 
-      <View style={styles.inputGroup}>
-        <Text style={styles.inputLabel}>Confirm Password</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Re-enter your password"
-          placeholderTextColor={Colors.gray400}
-          value={confirmPassword}
-          onChangeText={setConfirmPassword}
-          secureTextEntry
-          editable={!loading}
-        />
-      </View>
+      <DSInput
+        label="Confirm Password"
+        placeholder="Re-enter your password"
+        value={confirmPassword}
+        onChangeText={setConfirmPassword}
+        secureTextEntry={!showConfirm}
+        leftIcon="lock"
+        rightIcon={showConfirm ? 'eye-off' : 'eye'}
+        onRightIconPress={() => setShowConfirm(!showConfirm)}
+        editable={!loading}
+      />
 
-      <TouchableOpacity
-        style={styles.primaryButton}
+      <DSButton
+        title="Continue"
         onPress={handleSubmitForm}
+        loading={loading}
         disabled={loading}
-        activeOpacity={0.8}
-      >
-        <LinearGradient
-          colors={[Colors.primary, Colors.secondary]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.gradientButton}
-        >
-          {loading ? (
-            <ActivityIndicator color="#FFF" />
-          ) : (
-            <Text style={styles.primaryButtonText}>Continue</Text>
-          )}
-        </LinearGradient>
-      </TouchableOpacity>
+        size="lg"
+      />
 
       <Text style={styles.termsText}>
         By signing up, you agree to our{' '}
@@ -228,33 +205,33 @@ export default function RegisterScreen({ navigation }: any) {
       {/* Divider */}
       <View style={styles.divider}>
         <View style={styles.dividerLine} />
-        <Text style={styles.dividerText}>or sign up with</Text>
+        <Text style={styles.dividerText}>or</Text>
         <View style={styles.dividerLine} />
       </View>
 
-      <View style={styles.socialRow}>
-        <TouchableOpacity style={styles.socialButton} activeOpacity={0.7}>
-          <Text style={styles.socialIcon}>G</Text>
-          <Text style={styles.socialLabel}>Google</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.socialButton} activeOpacity={0.7}>
-          <Text style={styles.socialIcon}></Text>
-          <Text style={styles.socialLabel}>Apple</Text>
+      {/* Google Sign Up */}
+      <TouchableOpacity
+        style={styles.googleButton}
+        onPress={handleGoogleSignUp}
+        activeOpacity={0.7}
+      >
+        <Text style={styles.googleIcon}>G</Text>
+        <Text style={styles.googleText}>Continue with Google</Text>
+      </TouchableOpacity>
+
+      {/* Login link */}
+      <View style={styles.footer}>
+        <Text style={styles.footerText}>Already have an account? </Text>
+        <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+          <Text style={styles.footerLink}>Sign In</Text>
         </TouchableOpacity>
       </View>
-
-      <TouchableOpacity
-        onPress={() => navigation.navigate('Login')}
-        style={styles.switchAuth}
-      >
-        <Text style={styles.switchText}>
-          Already have an account? <Text style={styles.switchLink}>Sign In</Text>
-        </Text>
-      </TouchableOpacity>
     </>
   );
 
-  const renderOtpStep = (type: 'email' | 'phone') => {
+  // ─── OTP STEP ────────────────────────────────────────────────────────
+
+  const renderOtp = (type: 'email' | 'phone') => {
     const isEmail = type === 'email';
     const value = isEmail ? emailOtp : phoneOtp;
     const setValue = isEmail ? setEmailOtp : setPhoneOtp;
@@ -264,27 +241,35 @@ export default function RegisterScreen({ navigation }: any) {
     return (
       <>
         <TouchableOpacity
-          onPress={() => animateTransition(() => setStep(isEmail ? 'form' : 'email-otp'))}
-          style={styles.backRow}
+          style={styles.backButton}
+          onPress={() => animateTransition(() => {
+            if (isEmail) {
+              setStep('form');
+              setEmailOtp('');
+            } else {
+              setStep('email-otp');
+              setPhoneOtp('');
+            }
+          })}
         >
-          <Text style={styles.backArrow}>‹</Text>
-          <Text style={styles.backLabel}>Back</Text>
+          <Feather name="arrow-left" size={20} color={colors.primary[600]} />
+          <Text style={styles.backText}>Back</Text>
         </TouchableOpacity>
 
-        <Text style={styles.cardTitle}>
-          Verify {isEmail ? 'Email' : 'Phone'}
+        <Text style={styles.heading}>
+          Verify {isEmail ? 'email' : 'phone'}
         </Text>
-        <Text style={styles.cardSubtitle}>
-          Enter the 6-digit code sent to{'\n'}
-          <Text style={styles.destination}>{destination}</Text>
+        <Text style={styles.subheading}>
+          We sent a 6-digit code to{'\n'}
+          <Text style={styles.emailHighlight}>{destination}</Text>
         </Text>
 
         {/* OTP Input */}
-        <View style={styles.otpContainer}>
+        <View style={styles.otpWrapper}>
           <TextInput
             style={styles.otpInput}
             placeholder="000000"
-            placeholderTextColor={Colors.gray300}
+            placeholderTextColor={colors.neutral[300]}
             value={value}
             onChangeText={(t) => setValue(t.replace(/[^0-9]/g, '').slice(0, 6))}
             keyboardType="number-pad"
@@ -295,46 +280,32 @@ export default function RegisterScreen({ navigation }: any) {
         </View>
 
         <Text style={styles.otpHint}>
-          Demo mode: enter any 6 digits (e.g. 123456)
+          Demo: enter any 6 digits (e.g. 123456)
         </Text>
 
-        <TouchableOpacity
-          style={styles.primaryButton}
+        <DSButton
+          title={isEmail ? 'Verify & Continue' : 'Verify & Create Account'}
           onPress={onVerify}
+          loading={loading}
           disabled={loading}
-          activeOpacity={0.8}
-        >
-          <LinearGradient
-            colors={[Colors.primary, Colors.secondary]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.gradientButton}
-          >
-            {loading ? (
-              <ActivityIndicator color="#FFF" />
-            ) : (
-              <Text style={styles.primaryButtonText}>
-                {isEmail ? 'Verify & Continue' : 'Verify & Create Account'}
-              </Text>
-            )}
-          </LinearGradient>
-        </TouchableOpacity>
+          size="lg"
+        />
 
-        <TouchableOpacity onPress={handleResendOtp} disabled={loading}>
+        <TouchableOpacity onPress={handleResendOtp} disabled={loading} style={styles.resendRow}>
           <Text style={styles.resendText}>
-            Didn't receive the code? <Text style={styles.resendLink}>Resend</Text>
+            Didn't get the code? <Text style={styles.resendLink}>Resend</Text>
           </Text>
         </TouchableOpacity>
 
         {/* Step indicator */}
-        <View style={styles.stepRow}>
+        <View style={styles.stepsRow}>
           <View style={[styles.stepDot, styles.stepDone]} />
-          <View style={[styles.stepLine, isEmail ? null : styles.stepLineDone]} />
+          <View style={[styles.stepLine, styles.stepLineDone]} />
           <View style={[styles.stepDot, isEmail ? styles.stepActive : styles.stepDone]} />
-          <View style={[styles.stepLine, !isEmail ? null : null]} />
+          <View style={[styles.stepLine, !isEmail ? styles.stepLineDone : null]} />
           <View style={[styles.stepDot, !isEmail ? styles.stepActive : null]} />
         </View>
-        <View style={styles.stepLabelRow}>
+        <View style={styles.stepsLabelRow}>
           <Text style={styles.stepLabel}>Details</Text>
           <Text style={styles.stepLabel}>Email</Text>
           <Text style={styles.stepLabel}>Phone</Text>
@@ -343,277 +314,274 @@ export default function RegisterScreen({ navigation }: any) {
     );
   };
 
+  // ─── RENDER ──────────────────────────────────────────────────────────
+
   return (
-    <LinearGradient
-      colors={[Colors.primary, Colors.primaryLight, Colors.secondary]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={styles.container}
-    >
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
+    <View style={styles.screen}>
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        {/* Logo */}
-        <View style={styles.logoContainer}>
-          <View style={styles.logoWrapper}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Logo */}
+          <View style={styles.logoSection}>
             <Image
-              source={require('../../../assets/si-logo.png')}
+              source={require('../../../assets/brand/si-logo-green.png')}
               style={styles.logo}
               resizeMode="contain"
             />
           </View>
-          <Text style={styles.tagline}>
-            {step === 'form' ? 'Join the future of money' : 'Secure verification'}
-          </Text>
-        </View>
 
-        {/* Card */}
-        <Animated.View style={[styles.card, { opacity: fadeAnim }]}>
-          {error ? (
-            <View style={styles.errorBanner}>
-              <Text style={styles.errorText}>{error}</Text>
-            </View>
-          ) : null}
+          {/* Form */}
+          <Animated.View style={[styles.formCard, { opacity: fadeAnim }]}>
+            {error ? (
+              <View style={styles.errorBanner}>
+                <Feather name="alert-circle" size={16} color={colors.error} />
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            ) : null}
 
-          {step === 'form' && renderFormStep()}
-          {step === 'email-otp' && renderOtpStep('email')}
-          {step === 'phone-otp' && renderOtpStep('phone')}
-        </Animated.View>
-      </ScrollView>
-    </LinearGradient>
+            {step === 'form' && renderForm()}
+            {step === 'email-otp' && renderOtp('email')}
+            {step === 'phone-otp' && renderOtp('phone')}
+          </Animated.View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  screen: {
+    flex: 1,
+    backgroundColor: colors.neutral[50],
+  },
+  flex: { flex: 1 },
   scrollContent: {
     flexGrow: 1,
-    padding: Spacing.xl,
-    paddingTop: 50,
-    paddingBottom: 40,
-  },
-  logoContainer: { alignItems: 'center', marginBottom: 20 },
-  logoWrapper: {
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.lg,
-    marginBottom: Spacing.sm,
-  },
-  logo: { width: 150, height: 56 },
-  tagline: {
-    fontSize: FontSizes.sm,
-    color: 'rgba(255,255,255,0.9)',
-    fontWeight: '600',
-    letterSpacing: 0.5,
+    paddingHorizontal: spacing[5],
+    paddingTop: 56,
+    paddingBottom: spacing[10],
   },
 
-  card: {
-    backgroundColor: Colors.white,
-    borderRadius: 28,
-    padding: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 16 },
-    shadowOpacity: 0.2,
-    shadowRadius: 24,
-    elevation: 16,
+  // Logo
+  logoSection: {
+    alignItems: 'center',
+    marginBottom: spacing[6],
   },
-  cardTitle: {
-    fontSize: 26,
-    fontWeight: '800',
-    color: Colors.gray900,
-    marginBottom: 4,
-  },
-  cardSubtitle: {
-    fontSize: 15,
-    color: Colors.gray500,
-    marginBottom: 20,
-    lineHeight: 22,
-  },
-  destination: {
-    fontWeight: '700',
-    color: Colors.primary,
+  logo: {
+    width: 180,
+    height: 60,
   },
 
+  // Form Card
+  formCard: {
+    backgroundColor: colors.white,
+    borderRadius: radii['2xl'],
+    padding: spacing[6],
+    ...shadows.lg,
+  },
+
+  // Error
   errorBanner: {
-    backgroundColor: '#FEF2F2',
-    borderRadius: BorderRadius.md,
-    padding: 12,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#FECACA',
+    backgroundColor: colors.errorLight,
+    borderRadius: radii.md,
+    paddingVertical: spacing[3],
+    paddingHorizontal: spacing[4],
+    marginBottom: spacing[4],
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
   },
   errorText: {
-    fontSize: 13,
-    color: Colors.error,
-    fontWeight: '600',
-    textAlign: 'center',
+    fontSize: typography.size.sm,
+    color: colors.error,
+    fontWeight: typography.weight.medium,
+    flex: 1,
   },
 
-  inputGroup: { marginBottom: 14 },
-  inputLabel: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: Colors.gray600,
-    marginBottom: 6,
+  // Typography
+  heading: {
+    fontSize: typography.size['2xl'],
+    fontWeight: typography.weight.bold,
+    color: colors.neutral[900],
+    marginBottom: spacing[1],
   },
-  input: {
-    backgroundColor: Colors.gray50,
-    padding: 14,
-    borderRadius: 14,
-    fontSize: 15,
-    color: Colors.gray900,
-    borderWidth: 1.5,
-    borderColor: Colors.gray200,
+  subheading: {
+    fontSize: typography.size.base,
+    color: colors.neutral[500],
+    lineHeight: 22,
+    marginBottom: spacing[6],
   },
-
-  primaryButton: {
-    borderRadius: BorderRadius.lg,
-    overflow: 'hidden',
-    marginTop: 8,
-  },
-  gradientButton: {
-    paddingVertical: 16,
-    alignItems: 'center',
-  },
-  primaryButtonText: {
-    color: Colors.white,
-    fontSize: 16,
-    fontWeight: '700',
-    letterSpacing: 0.3,
+  emailHighlight: {
+    fontWeight: typography.weight.semiBold,
+    color: colors.primary[600],
   },
 
+  // Terms
   termsText: {
-    fontSize: 12,
-    color: Colors.gray400,
+    fontSize: typography.size.xs,
+    color: colors.neutral[400],
     textAlign: 'center',
-    marginTop: 14,
+    marginTop: spacing[4],
     lineHeight: 18,
   },
-  termsLink: { color: Colors.primary, fontWeight: '600' },
+  termsLink: {
+    color: colors.primary[600],
+    fontWeight: typography.weight.medium,
+  },
 
+  // Divider
   divider: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 20,
+    marginVertical: spacing[5],
   },
-  dividerLine: { flex: 1, height: 1, backgroundColor: Colors.gray200 },
+  dividerLine: {
+    flex: 1,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: colors.neutral[300],
+  },
   dividerText: {
-    marginHorizontal: 14,
-    fontSize: 12,
-    color: Colors.gray400,
-    fontWeight: '500',
+    marginHorizontal: spacing[4],
+    fontSize: typography.size.sm,
+    color: colors.neutral[400],
   },
 
-  socialRow: { flexDirection: 'row', gap: 10 },
-  socialButton: {
-    flex: 1,
-    backgroundColor: Colors.gray50,
-    paddingVertical: 13,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: Colors.gray200,
+  // Google button
+  googleButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    paddingVertical: spacing[3] + 2,
+    borderRadius: radii.lg,
+    borderWidth: 1.5,
+    borderColor: colors.neutral[200],
+    backgroundColor: colors.white,
+    gap: spacing[3],
   },
-  socialIcon: { fontSize: 16, fontWeight: '700', color: Colors.gray700 },
-  socialLabel: { fontSize: 14, fontWeight: '600', color: Colors.gray700 },
-
-  switchAuth: { marginTop: 16 },
-  switchText: {
-    textAlign: 'center',
-    fontSize: 14,
-    color: Colors.gray500,
+  googleIcon: {
+    fontSize: typography.size.lg,
+    fontWeight: typography.weight.bold,
+    color: '#4285F4',
   },
-  switchLink: { color: Colors.primary, fontWeight: '700' },
+  googleText: {
+    fontSize: typography.size.base,
+    fontWeight: typography.weight.medium,
+    color: colors.neutral[700],
+  },
 
-  // OTP styles
-  backRow: {
+  // Footer
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: spacing[6],
+  },
+  footerText: {
+    fontSize: typography.size.base,
+    color: colors.neutral[500],
+  },
+  footerLink: {
+    fontSize: typography.size.base,
+    fontWeight: typography.weight.semiBold,
+    color: colors.primary[600],
+  },
+
+  // OTP
+  backButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginBottom: 16,
+    gap: spacing[2],
+    marginBottom: spacing[4],
   },
-  backArrow: { fontSize: 26, color: Colors.primary, fontWeight: '300' },
-  backLabel: { fontSize: 15, color: Colors.primary, fontWeight: '600' },
-
-  otpContainer: { marginVertical: 20, alignItems: 'center' },
+  backText: {
+    fontSize: typography.size.base,
+    fontWeight: typography.weight.medium,
+    color: colors.primary[600],
+  },
+  otpWrapper: {
+    marginBottom: spacing[3],
+  },
   otpInput: {
-    backgroundColor: Colors.gray50,
+    backgroundColor: colors.neutral[50],
     borderWidth: 2,
-    borderColor: Colors.primary,
-    borderRadius: 16,
-    padding: 18,
+    borderColor: colors.primary[500],
+    borderRadius: radii.lg,
+    paddingVertical: spacing[4],
+    paddingHorizontal: spacing[5],
     fontSize: 28,
     fontWeight: '800',
-    color: Colors.gray900,
+    color: colors.neutral[900],
     textAlign: 'center',
-    letterSpacing: 12,
-    width: '100%',
+    letterSpacing: 10,
     ...Platform.select({
       web: { outlineStyle: 'none' } as any,
     }),
   },
   otpHint: {
-    fontSize: 12,
-    color: Colors.gray400,
+    fontSize: typography.size.xs,
+    color: colors.neutral[400],
     textAlign: 'center',
-    marginBottom: 12,
+    marginBottom: spacing[5],
     fontStyle: 'italic',
   },
-
+  resendRow: {
+    marginTop: spacing[5],
+  },
   resendText: {
     textAlign: 'center',
-    fontSize: 14,
-    color: Colors.gray500,
-    marginTop: 20,
+    fontSize: typography.size.sm,
+    color: colors.neutral[500],
   },
-  resendLink: { color: Colors.primary, fontWeight: '700' },
+  resendLink: {
+    color: colors.primary[600],
+    fontWeight: typography.weight.semiBold,
+  },
 
-  // Step indicator
-  stepRow: {
+  // Steps
+  stepsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 28,
-    gap: 0,
+    marginTop: spacing[8],
   },
-  stepDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: Colors.gray200,
-    borderWidth: 2,
-    borderColor: Colors.gray200,
-  },
-  stepActive: {
-    backgroundColor: Colors.white,
-    borderColor: Colors.primary,
-  },
-  stepDone: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
-  stepLine: {
-    width: 50,
-    height: 2,
-    backgroundColor: Colors.gray200,
-  },
-  stepLineDone: {
-    backgroundColor: Colors.primary,
-  },
-  stepLabelRow: {
+  stepsLabelRow: {
     flexDirection: 'row',
     justifyContent: 'center',
     gap: 38,
-    marginTop: 6,
+    marginTop: spacing[2],
   },
   stepLabel: {
-    fontSize: 11,
-    color: Colors.gray400,
-    fontWeight: '600',
+    fontSize: typography.size.xs,
+    color: colors.neutral[400],
+    fontWeight: typography.weight.medium,
+  },
+  stepDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: colors.neutral[200],
+    borderWidth: 2,
+    borderColor: colors.neutral[200],
+  },
+  stepActive: {
+    backgroundColor: colors.white,
+    borderColor: colors.primary[500],
+  },
+  stepDone: {
+    backgroundColor: colors.primary[500],
+    borderColor: colors.primary[500],
+  },
+  stepLine: {
+    width: 48,
+    height: 2,
+    backgroundColor: colors.neutral[200],
+  },
+  stepLineDone: {
+    backgroundColor: colors.primary[500],
   },
 });

@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException, ConflictException, Logger } from '@n
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
+import { OAuth2Client } from 'google-auth-library';
 import { UsersService } from '../users/users.service';
 
 export interface JwtPayload {
@@ -19,6 +20,7 @@ export interface AuthResponse {
   user: {
     id: string;
     email: string;
+    fullName?: string;
     kycStatus: string;
     kycLevel: number;
   };
@@ -32,12 +34,17 @@ export interface AuthResponse {
 export class AuthService {
   private readonly logger = new Logger(AuthService.name);
   private readonly SALT_ROUNDS = 10;
+  private googleClient: OAuth2Client;
 
   constructor(
     private usersService: UsersService,
     private jwtService: JwtService,
     private configService: ConfigService,
-  ) {}
+  ) {
+    this.googleClient = new OAuth2Client(
+      this.configService.get<string>('GOOGLE_CLIENT_ID'),
+    );
+  }
 
   /**
    * Register new user
@@ -81,6 +88,49 @@ export class AuthService {
 
     // Generate tokens
     return this.generateAuthResponse(user);
+  }
+
+  /**
+   * Google OAuth login
+   * Verifies Google ID token and creates/logs in user
+   */
+  async googleLogin(idToken: string): Promise<AuthResponse> {
+    let payload;
+    try {
+      const ticket = await this.googleClient.verifyIdToken({
+        idToken,
+        audience: this.configService.get<string>('GOOGLE_CLIENT_ID'),
+      });
+      payload = ticket.getPayload();
+    } catch (error) {
+      this.logger.error(`Google token verification failed: ${error.message}`);
+      throw new UnauthorizedException('Invalid Google token');
+    }
+
+    if (!payload?.email) {
+      throw new UnauthorizedException('Google token missing email');
+    }
+
+    // Find existing user or create a new one
+    let user = await this.usersService.findByEmail(payload.email);
+
+    if (!user) {
+      // Create user with a random password hash (Google users don't need a password)
+      const randomHash = await bcrypt.hash(Math.random().toString(36), this.SALT_ROUNDS);
+      user = await this.usersService.create({
+        email: payload.email,
+        passwordHash: randomHash,
+        fullName: payload.name || payload.email.split('@')[0],
+        kycStatus: 'pending',
+        kycLevel: 1,
+      });
+      this.logger.log(`New user registered via Google: ${payload.email}`);
+    } else {
+      this.logger.log(`User logged in via Google: ${payload.email}`);
+    }
+
+    const { passwordHash, ...userWithoutPassword } = user;
+    return this.generateAuthResponse(userWithoutPassword);
   }
 
   /**
@@ -187,6 +237,7 @@ export class AuthService {
       user: {
         id: user.id,
         email: user.email,
+        fullName: user.fullName,
         kycStatus: user.kycStatus,
         kycLevel: user.kycLevel,
       },

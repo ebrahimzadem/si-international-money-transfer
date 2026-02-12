@@ -14,7 +14,12 @@ async function bootstrap() {
 
   // CORS: Allow frontend to connect
   app.enableCors({
-    origin: process.env.CORS_ORIGIN?.split(',') || ['http://localhost:8081', 'exp://localhost:8081'],
+    origin: process.env.CORS_ORIGIN?.split(',') || [
+      'http://localhost:8081',
+      'exp://localhost:8081',
+      'https://sisendsmoney.com',
+      'https://www.sisendsmoney.com',
+    ],
     credentials: true,
   });
 

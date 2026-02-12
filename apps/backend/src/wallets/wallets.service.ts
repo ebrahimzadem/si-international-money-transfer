@@ -35,15 +35,13 @@ export class WalletsService {
     private ethereumService: EthereumService,
   ) {
     // Initialize PostgreSQL connection pool
+    const databaseUrl = this.configService.get<string>('DATABASE_URL');
     this.pool = new Pool({
-      host: this.configService.get<string>('DATABASE_HOST'),
-      port: this.configService.get<number>('DATABASE_PORT'),
-      user: this.configService.get<string>('DATABASE_USER'),
-      password: this.configService.get<string>('DATABASE_PASSWORD'),
-      database: this.configService.get<string>('DATABASE_NAME'),
+      connectionString: databaseUrl,
+      ssl: databaseUrl?.includes('neon.tech') ? { rejectUnauthorized: false } : undefined,
       max: 20,
       idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 2000,
+      connectionTimeoutMillis: 5000,
     });
 
     this.logger.log('Wallets Service initialized');

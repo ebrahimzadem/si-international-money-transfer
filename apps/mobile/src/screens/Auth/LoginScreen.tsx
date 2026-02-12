@@ -2,38 +2,33 @@ import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   StyleSheet,
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   Image,
   Animated,
+  TextInput,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { Feather } from '@expo/vector-icons';
 import { useDispatch } from 'react-redux';
 import { setUser } from '../../store/authSlice';
 import api from '../../services/api';
-import { Colors, Fonts, FontSizes, Spacing, BorderRadius } from '../../theme/colors';
+import { DSButton, DSInput, colors, typography, spacing, radii, shadows } from '../../design-system';
 
 type Step = 'credentials' | 'email-otp';
 
 export default function LoginScreen({ navigation }: any) {
   const dispatch = useDispatch();
 
-  // Form fields
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-
-  // OTP
   const [step, setStep] = useState<Step>('credentials');
   const [emailOtp, setEmailOtp] = useState('');
-
-  // UI state
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
 
@@ -57,16 +52,9 @@ export default function LoginScreen({ navigation }: any) {
     });
   };
 
-  // Step 1: Validate credentials → send email OTP
   const handleLogin = async () => {
-    if (!email.trim()) {
-      showError('Please enter your email');
-      return;
-    }
-    if (!password) {
-      showError('Please enter your password');
-      return;
-    }
+    if (!email.trim()) { showError('Please enter your email'); return; }
+    if (!password) { showError('Please enter your password'); return; }
 
     setLoading(true);
     setError('');
@@ -80,12 +68,8 @@ export default function LoginScreen({ navigation }: any) {
     }
   };
 
-  // Step 2: Verify email OTP → complete login
   const handleVerifyOtp = async () => {
-    if (emailOtp.length !== 6) {
-      showError('Enter the 6-digit code');
-      return;
-    }
+    if (emailOtp.length !== 6) { showError('Enter the 6-digit code'); return; }
 
     setLoading(true);
     setError('');
@@ -102,142 +86,107 @@ export default function LoginScreen({ navigation }: any) {
 
   const handleResendOtp = async () => {
     setLoading(true);
-    try {
-      await api.sendEmailOtp(email);
-    } catch {
-      showError('Failed to resend code');
-    } finally {
-      setLoading(false);
-    }
+    try { await api.sendEmailOtp(email); } catch { showError('Failed to resend code'); }
+    finally { setLoading(false); }
   };
 
   const handleGoogleSignIn = () => {
-    showError('Google Sign-In will be available soon!');
+    showError('Google Sign-In coming soon');
   };
 
-  const handleAppleSignIn = () => {
-    showError('Apple Sign-In will be available soon!');
-  };
+  // ─── CREDENTIALS STEP ─────────────────────────────────────────────────
 
-  const renderCredentialsStep = () => (
+  const renderCredentials = () => (
     <>
-      <Text style={styles.welcomeText}>Welcome Back</Text>
-      <Text style={styles.welcomeSubtext}>Sign in to your account</Text>
+      <Text style={styles.heading}>Welcome back</Text>
+      <Text style={styles.subheading}>Sign in to your Si account</Text>
 
-      <View style={styles.inputContainer}>
-        <Text style={styles.inputLabel}>Email</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="your@email.com"
-          placeholderTextColor={Colors.gray400}
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-          keyboardType="email-address"
-          editable={!loading}
-        />
-      </View>
+      <DSInput
+        label="Email"
+        placeholder="you@example.com"
+        value={email}
+        onChangeText={setEmail}
+        autoCapitalize="none"
+        keyboardType="email-address"
+        leftIcon="mail"
+        editable={!loading}
+      />
 
-      <View style={styles.inputContainer}>
-        <Text style={styles.inputLabel}>Password</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Enter your password"
-          placeholderTextColor={Colors.gray400}
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          editable={!loading}
-        />
-      </View>
+      <DSInput
+        label="Password"
+        placeholder="Enter your password"
+        value={password}
+        onChangeText={setPassword}
+        secureTextEntry={!showPassword}
+        leftIcon="lock"
+        rightIcon={showPassword ? 'eye-off' : 'eye'}
+        onRightIconPress={() => setShowPassword(!showPassword)}
+        editable={!loading}
+      />
 
-      <TouchableOpacity>
-        <Text style={styles.forgotPassword}>Forgot password?</Text>
+      <TouchableOpacity style={styles.forgotRow}>
+        <Text style={styles.forgotText}>Forgot password?</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity
-        style={[styles.loginButton, loading && styles.loginButtonDisabled]}
+      <DSButton
+        title="Sign In"
         onPress={handleLogin}
+        loading={loading}
         disabled={loading}
-        activeOpacity={0.8}
-      >
-        <LinearGradient
-          colors={[Colors.primary, Colors.secondary]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.gradientButton}
-        >
-          {loading ? (
-            <ActivityIndicator color={Colors.white} />
-          ) : (
-            <Text style={styles.loginButtonText}>Sign In</Text>
-          )}
-        </LinearGradient>
-      </TouchableOpacity>
+        size="lg"
+      />
 
-      {/* Social Sign In */}
+      {/* Divider */}
       <View style={styles.divider}>
         <View style={styles.dividerLine} />
-        <Text style={styles.dividerText}>or continue with</Text>
+        <Text style={styles.dividerText}>or</Text>
         <View style={styles.dividerLine} />
       </View>
 
-      <View style={styles.socialButtons}>
-        <TouchableOpacity
-          style={styles.socialButton}
-          onPress={handleGoogleSignIn}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.socialIcon}>G</Text>
-          <Text style={styles.socialButtonText}>Google</Text>
-        </TouchableOpacity>
+      {/* Google Sign In */}
+      <TouchableOpacity
+        style={styles.googleButton}
+        onPress={handleGoogleSignIn}
+        activeOpacity={0.7}
+      >
+        <Text style={styles.googleIcon}>G</Text>
+        <Text style={styles.googleText}>Continue with Google</Text>
+      </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.socialButton}
-          onPress={handleAppleSignIn}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.socialIcon}>{'\uF8FF'}</Text>
-          <Text style={styles.socialButtonText}>Apple</Text>
+      {/* Register link */}
+      <View style={styles.footer}>
+        <Text style={styles.footerText}>Don't have an account? </Text>
+        <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+          <Text style={styles.footerLink}>Sign Up</Text>
         </TouchableOpacity>
       </View>
-
-      <TouchableOpacity
-        style={styles.registerContainer}
-        onPress={() => navigation.navigate('Register')}
-      >
-        <Text style={styles.registerText}>
-          Don't have an account?{' '}
-          <Text style={styles.registerLink}>Sign Up</Text>
-        </Text>
-      </TouchableOpacity>
     </>
   );
 
-  const renderOtpStep = () => (
+  // ─── OTP STEP ─────────────────────────────────────────────────────────
+
+  const renderOtp = () => (
     <>
       <TouchableOpacity
-        onPress={() => animateTransition(() => {
-          setStep('credentials');
-          setEmailOtp('');
-        })}
-        style={styles.backRow}
+        style={styles.backButton}
+        onPress={() => animateTransition(() => { setStep('credentials'); setEmailOtp(''); })}
       >
-        <Text style={styles.backArrow}>{'\u2039'}</Text>
-        <Text style={styles.backLabel}>Back</Text>
+        <Feather name="arrow-left" size={20} color={colors.primary[600]} />
+        <Text style={styles.backText}>Back</Text>
       </TouchableOpacity>
 
-      <Text style={styles.welcomeText}>Verify Email</Text>
-      <Text style={styles.welcomeSubtext}>
-        Enter the 6-digit code sent to{'\n'}
-        <Text style={styles.destination}>{email}</Text>
+      <Text style={styles.heading}>Check your email</Text>
+      <Text style={styles.subheading}>
+        We sent a 6-digit code to{'\n'}
+        <Text style={styles.emailHighlight}>{email}</Text>
       </Text>
 
-      <View style={styles.otpContainer}>
+      {/* OTP Input */}
+      <View style={styles.otpWrapper}>
         <TextInput
           style={styles.otpInput}
           placeholder="000000"
-          placeholderTextColor={Colors.gray300}
+          placeholderTextColor={colors.neutral[300]}
           value={emailOtp}
           onChangeText={(t) => setEmailOtp(t.replace(/[^0-9]/g, '').slice(0, 6))}
           keyboardType="number-pad"
@@ -248,57 +197,38 @@ export default function LoginScreen({ navigation }: any) {
       </View>
 
       <Text style={styles.otpHint}>
-        Demo mode: enter any 6 digits (e.g. 123456)
+        Demo: enter any 6 digits (e.g. 123456)
       </Text>
 
-      <TouchableOpacity
-        style={[styles.loginButton, loading && styles.loginButtonDisabled]}
+      <DSButton
+        title="Verify & Sign In"
         onPress={handleVerifyOtp}
+        loading={loading}
         disabled={loading}
-        activeOpacity={0.8}
-      >
-        <LinearGradient
-          colors={[Colors.primary, Colors.secondary]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={styles.gradientButton}
-        >
-          {loading ? (
-            <ActivityIndicator color={Colors.white} />
-          ) : (
-            <Text style={styles.loginButtonText}>Verify & Sign In</Text>
-          )}
-        </LinearGradient>
-      </TouchableOpacity>
+        size="lg"
+      />
 
-      <TouchableOpacity onPress={handleResendOtp} disabled={loading}>
+      <TouchableOpacity onPress={handleResendOtp} disabled={loading} style={styles.resendRow}>
         <Text style={styles.resendText}>
-          Didn't receive the code? <Text style={styles.resendLink}>Resend</Text>
+          Didn't get the code? <Text style={styles.resendLink}>Resend</Text>
         </Text>
       </TouchableOpacity>
 
       {/* Step indicator */}
-      <View style={styles.stepRow}>
+      <View style={styles.stepsRow}>
         <View style={[styles.stepDot, styles.stepDone]} />
         <View style={[styles.stepLine, styles.stepLineDone]} />
         <View style={[styles.stepDot, styles.stepActive]} />
       </View>
-      <View style={styles.stepLabelRow}>
-        <Text style={styles.stepLabel}>Credentials</Text>
-        <Text style={styles.stepLabel}>Verify</Text>
-      </View>
     </>
   );
 
+  // ─── RENDER ───────────────────────────────────────────────────────────
+
   return (
-    <LinearGradient
-      colors={[Colors.primary, Colors.primaryLight, Colors.secondary]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={styles.container}
-    >
+    <View style={styles.screen}>
       <KeyboardAvoidingView
-        style={styles.container}
+        style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ScrollView
@@ -306,298 +236,248 @@ export default function LoginScreen({ navigation }: any) {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Logo Section */}
-          <View style={styles.logoContainer}>
-            <View style={styles.logoWrapper}>
-              <Image
-                source={require('../../../assets/si-logo.png')}
-                style={styles.logo}
-                resizeMode="contain"
-              />
-            </View>
-            <Text style={styles.tagline}>
-              {step === 'credentials' ? 'International Money Transfer' : 'Secure verification'}
-            </Text>
+          {/* Logo */}
+          <View style={styles.logoSection}>
+            <Image
+              source={require('../../../assets/brand/si-logo-green.png')}
+              style={styles.logo}
+              resizeMode="contain"
+            />
           </View>
 
-          {/* Form Card */}
+          {/* Form */}
           <Animated.View style={[styles.formCard, { opacity: fadeAnim }]}>
             {error ? (
               <View style={styles.errorBanner}>
+                <Feather name="alert-circle" size={16} color={colors.error} />
                 <Text style={styles.errorText}>{error}</Text>
               </View>
             ) : null}
 
-            {step === 'credentials' && renderCredentialsStep()}
-            {step === 'email-otp' && renderOtpStep()}
+            {step === 'credentials' && renderCredentials()}
+            {step === 'email-otp' && renderOtp()}
           </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
-    </LinearGradient>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  screen: {
     flex: 1,
+    backgroundColor: colors.neutral[50],
   },
+  flex: { flex: 1 },
   scrollContent: {
     flexGrow: 1,
-    padding: Spacing.xl,
-    justifyContent: 'space-between',
-    paddingTop: 60,
-    paddingBottom: Spacing.huge,
+    paddingHorizontal: spacing[5],
+    paddingTop: 72,
+    paddingBottom: spacing[10],
   },
-  logoContainer: {
+
+  // Logo
+  logoSection: {
     alignItems: 'center',
-    marginBottom: 30,
-  },
-  logoWrapper: {
-    backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderRadius: BorderRadius.xxl,
-    padding: Spacing.xl,
-    marginBottom: Spacing.lg,
-    shadowColor: Colors.black,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 10,
+    marginBottom: spacing[8],
   },
   logo: {
-    width: 200,
-    height: 80,
+    width: 180,
+    height: 60,
   },
-  tagline: {
-    fontSize: FontSizes.md,
-    color: 'rgba(255, 255, 255, 0.95)',
-    fontFamily: Fonts.semiBold,
-    letterSpacing: 0.5,
-  },
+
+  // Form Card
   formCard: {
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.xxxl,
-    padding: Spacing.xxl + 4,
-    shadowColor: Colors.black,
-    shadowOffset: { width: 0, height: 20 },
-    shadowOpacity: 0.25,
-    shadowRadius: 30,
-    elevation: 20,
+    backgroundColor: colors.white,
+    borderRadius: radii['2xl'],
+    padding: spacing[6],
+    ...shadows.lg,
   },
+
+  // Error
   errorBanner: {
-    backgroundColor: '#FEF2F2',
-    borderRadius: BorderRadius.md,
-    padding: 12,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#FECACA',
+    backgroundColor: colors.errorLight,
+    borderRadius: radii.md,
+    paddingVertical: spacing[3],
+    paddingHorizontal: spacing[4],
+    marginBottom: spacing[4],
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[2],
   },
   errorText: {
-    fontSize: 13,
-    color: Colors.error,
-    fontWeight: '600',
-    textAlign: 'center',
+    fontSize: typography.size.sm,
+    color: colors.error,
+    fontWeight: typography.weight.medium,
+    flex: 1,
   },
-  welcomeText: {
-    fontSize: FontSizes.xxxl - 4,
-    fontFamily: Fonts.extraBold,
-    color: Colors.gray900,
-    marginBottom: 4,
+
+  // Typography
+  heading: {
+    fontSize: typography.size['2xl'],
+    fontWeight: typography.weight.bold,
+    color: colors.neutral[900],
+    marginBottom: spacing[1],
   },
-  welcomeSubtext: {
-    fontSize: FontSizes.md - 1,
-    color: Colors.gray600,
-    fontFamily: Fonts.regular,
-    marginBottom: Spacing.xxl + 4,
+  subheading: {
+    fontSize: typography.size.base,
+    color: colors.neutral[500],
     lineHeight: 22,
+    marginBottom: spacing[6],
   },
-  destination: {
-    fontWeight: '700',
-    color: Colors.primary,
+  emailHighlight: {
+    fontWeight: typography.weight.semiBold,
+    color: colors.primary[600],
   },
-  inputContainer: {
-    marginBottom: Spacing.sm + 6,
+
+  // Forgot password
+  forgotRow: {
+    alignSelf: 'flex-end',
+    marginBottom: spacing[5],
+    marginTop: -spacing[2],
   },
-  inputLabel: {
-    fontSize: FontSizes.sm - 1,
-    fontFamily: Fonts.semiBold,
-    color: Colors.gray700,
-    marginBottom: Spacing.sm,
+  forgotText: {
+    fontSize: typography.size.sm,
+    fontWeight: typography.weight.medium,
+    color: colors.primary[600],
   },
-  input: {
-    backgroundColor: Colors.gray50,
-    padding: Spacing.lg - 2,
-    borderRadius: BorderRadius.lg - 2,
-    fontSize: FontSizes.md,
-    fontFamily: Fonts.regular,
-    color: Colors.gray900,
-    borderWidth: 1.5,
-    borderColor: Colors.gray200,
-  },
-  forgotPassword: {
-    textAlign: 'right',
-    color: Colors.primary,
-    fontSize: FontSizes.sm - 1,
-    fontFamily: Fonts.semiBold,
-    marginTop: -Spacing.xs,
-    marginBottom: Spacing.md,
-  },
-  loginButton: {
-    borderRadius: BorderRadius.lg,
-    overflow: 'hidden',
-    marginTop: Spacing.sm,
-  },
-  loginButtonDisabled: {
-    opacity: 0.7,
-  },
-  gradientButton: {
-    padding: Spacing.lg + 2,
-    alignItems: 'center',
-  },
-  loginButtonText: {
-    color: Colors.white,
-    fontSize: FontSizes.lg - 1,
-    fontFamily: Fonts.bold,
-    letterSpacing: 0.5,
-  },
+
+  // Divider
   divider: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: Spacing.xxl,
+    marginVertical: spacing[5],
   },
   dividerLine: {
     flex: 1,
-    height: 1,
-    backgroundColor: Colors.gray200,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: colors.neutral[300],
   },
   dividerText: {
-    marginHorizontal: Spacing.lg,
-    fontSize: FontSizes.xs + 1,
-    color: Colors.gray400,
-    fontFamily: Fonts.regular,
+    marginHorizontal: spacing[4],
+    fontSize: typography.size.sm,
+    color: colors.neutral[400],
   },
-  socialButtons: {
+
+  // Google button
+  googleButton: {
     flexDirection: 'row',
-    gap: Spacing.md,
-  },
-  socialButton: {
-    flex: 1,
-    backgroundColor: Colors.gray50,
-    padding: Spacing.lg - 3,
-    borderRadius: BorderRadius.lg - 2,
-    borderWidth: 1.5,
-    borderColor: Colors.gray200,
     alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: spacing[3] + 2,
+    borderRadius: radii.lg,
+    borderWidth: 1.5,
+    borderColor: colors.neutral[200],
+    backgroundColor: colors.white,
+    gap: spacing[3],
+  },
+  googleIcon: {
+    fontSize: typography.size.lg,
+    fontWeight: typography.weight.bold,
+    color: '#4285F4',
+  },
+  googleText: {
+    fontSize: typography.size.base,
+    fontWeight: typography.weight.medium,
+    color: colors.neutral[700],
+  },
+
+  // Footer
+  footer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    gap: Spacing.sm,
+    marginTop: spacing[6],
   },
-  socialIcon: {
-    fontSize: FontSizes.md,
-    fontWeight: '700',
-    color: Colors.gray700,
+  footerText: {
+    fontSize: typography.size.base,
+    color: colors.neutral[500],
   },
-  socialButtonText: {
-    fontSize: FontSizes.md - 1,
-    fontFamily: Fonts.semiBold,
-    color: Colors.gray700,
-  },
-  registerContainer: {
-    marginTop: Spacing.lg,
-  },
-  registerText: {
-    textAlign: 'center',
-    fontSize: FontSizes.md - 1,
-    color: Colors.gray600,
-    fontFamily: Fonts.regular,
-  },
-  registerLink: {
-    color: Colors.primary,
-    fontFamily: Fonts.bold,
+  footerLink: {
+    fontSize: typography.size.base,
+    fontWeight: typography.weight.semiBold,
+    color: colors.primary[600],
   },
 
-  // OTP styles
-  backRow: {
+  // OTP
+  backButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    marginBottom: 16,
+    gap: spacing[2],
+    marginBottom: spacing[4],
   },
-  backArrow: { fontSize: 26, color: Colors.primary, fontWeight: '300' },
-  backLabel: { fontSize: 15, color: Colors.primary, fontWeight: '600' },
-
-  otpContainer: { marginVertical: 20, alignItems: 'center' },
+  backText: {
+    fontSize: typography.size.base,
+    fontWeight: typography.weight.medium,
+    color: colors.primary[600],
+  },
+  otpWrapper: {
+    marginBottom: spacing[3],
+  },
   otpInput: {
-    backgroundColor: Colors.gray50,
+    backgroundColor: colors.neutral[50],
     borderWidth: 2,
-    borderColor: Colors.primary,
-    borderRadius: BorderRadius.lg,
-    padding: 18,
+    borderColor: colors.primary[500],
+    borderRadius: radii.lg,
+    paddingVertical: spacing[4],
+    paddingHorizontal: spacing[5],
     fontSize: 28,
     fontWeight: '800',
-    color: Colors.gray900,
+    color: colors.neutral[900],
     textAlign: 'center',
-    letterSpacing: 12,
-    width: '100%',
+    letterSpacing: 10,
     ...Platform.select({
       web: { outlineStyle: 'none' } as any,
     }),
   },
   otpHint: {
-    fontSize: 12,
-    color: Colors.gray400,
+    fontSize: typography.size.xs,
+    color: colors.neutral[400],
     textAlign: 'center',
-    marginBottom: 12,
+    marginBottom: spacing[5],
     fontStyle: 'italic',
   },
-
+  resendRow: {
+    marginTop: spacing[5],
+  },
   resendText: {
     textAlign: 'center',
-    fontSize: 14,
-    color: Colors.gray500,
-    marginTop: 20,
+    fontSize: typography.size.sm,
+    color: colors.neutral[500],
   },
-  resendLink: { color: Colors.primary, fontWeight: '700' },
+  resendLink: {
+    color: colors.primary[600],
+    fontWeight: typography.weight.semiBold,
+  },
 
-  // Step indicator
-  stepRow: {
+  // Steps
+  stepsRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 28,
+    marginTop: spacing[8],
   },
   stepDot: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: Colors.gray200,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: colors.neutral[200],
     borderWidth: 2,
-    borderColor: Colors.gray200,
+    borderColor: colors.neutral[200],
   },
   stepActive: {
-    backgroundColor: Colors.white,
-    borderColor: Colors.primary,
+    backgroundColor: colors.white,
+    borderColor: colors.primary[500],
   },
   stepDone: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+    backgroundColor: colors.primary[500],
+    borderColor: colors.primary[500],
   },
   stepLine: {
-    width: 60,
+    width: 48,
     height: 2,
-    backgroundColor: Colors.gray200,
+    backgroundColor: colors.neutral[200],
   },
   stepLineDone: {
-    backgroundColor: Colors.primary,
-  },
-  stepLabelRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 48,
-    marginTop: 6,
-  },
-  stepLabel: {
-    fontSize: 11,
-    color: Colors.gray400,
-    fontWeight: '600',
+    backgroundColor: colors.primary[500],
   },
 });

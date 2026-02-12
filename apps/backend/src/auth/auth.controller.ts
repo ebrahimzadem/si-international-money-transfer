@@ -33,6 +33,12 @@ class RefreshTokenDto {
   refreshToken: string;
 }
 
+class GoogleLoginDto {
+  @IsString()
+  @IsNotEmpty()
+  idToken: string;
+}
+
 /**
  * Authentication Controller
  * Handles user registration, login, and token refresh
@@ -59,6 +65,16 @@ export class AuthController {
   @Post('login')
   async login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto.email, loginDto.password);
+  }
+
+  /**
+   * Google OAuth login
+   * POST /auth/google
+   */
+  @HttpCode(HttpStatus.OK)
+  @Post('google')
+  async googleLogin(@Body() googleLoginDto: GoogleLoginDto) {
+    return this.authService.googleLogin(googleLoginDto.idToken);
   }
 
   /**

@@ -35,15 +35,13 @@ export class UsersService {
 
   constructor(private configService: ConfigService) {
     // Initialize PostgreSQL connection pool
+    const databaseUrl = this.configService.get<string>('DATABASE_URL');
     this.pool = new Pool({
-      host: this.configService.get<string>('DATABASE_HOST'),
-      port: this.configService.get<number>('DATABASE_PORT'),
-      user: this.configService.get<string>('DATABASE_USER'),
-      password: this.configService.get<string>('DATABASE_PASSWORD'),
-      database: this.configService.get<string>('DATABASE_NAME'),
-      max: 20, // Maximum number of clients in the pool
+      connectionString: databaseUrl,
+      ssl: databaseUrl?.includes('neon.tech') ? { rejectUnauthorized: false } : undefined,
+      max: 20,
       idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 2000,
+      connectionTimeoutMillis: 5000,
     });
 
     this.logger.log('PostgreSQL connection pool initialized');
@@ -54,9 +52,9 @@ export class UsersService {
    */
   async create(createUserDto: CreateUserDto): Promise<User> {
     const query = `
-      INSERT INTO users (email, password_hash, kyc_status, kyc_level)
-      VALUES ($1, $2, $3, $4)
-      RETURNING id, email, password_hash as "passwordHash",
+      INSERT INTO users (email, password_hash, full_name, kyc_status, kyc_level)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING id, email, full_name as "fullName", password_hash as "passwordHash",
                 phone as "phoneNumber", kyc_status as "kycStatus", kyc_level as "kycLevel",
                 mfa_enabled as "twoFactorEnabled", created_at as "createdAt", updated_at as "updatedAt"
     `;
@@ -64,6 +62,7 @@ export class UsersService {
     const values = [
       createUserDto.email,
       createUserDto.passwordHash,
+      createUserDto.fullName || null,
       createUserDto.kycStatus,
       createUserDto.kycLevel,
     ];
@@ -82,7 +81,8 @@ export class UsersService {
    */
   async findByEmail(email: string): Promise<User | null> {
     const query = `
-      SELECT id, email, password_hash as "passwordHash",              phone as "phoneNumber", kyc_status as "kycStatus", kyc_level as "kycLevel",
+      SELECT id, email, full_name as "fullName", password_hash as "passwordHash",
+             phone as "phoneNumber", kyc_status as "kycStatus", kyc_level as "kycLevel",
              mfa_enabled as "twoFactorEnabled", created_at as "createdAt", updated_at as "updatedAt"
       FROM users
       WHERE email = $1
@@ -102,7 +102,8 @@ export class UsersService {
    */
   async findById(id: string): Promise<User | null> {
     const query = `
-      SELECT id, email, password_hash as "passwordHash",              phone as "phoneNumber", kyc_status as "kycStatus", kyc_level as "kycLevel",
+      SELECT id, email, full_name as "fullName", password_hash as "passwordHash",
+             phone as "phoneNumber", kyc_status as "kycStatus", kyc_level as "kycLevel",
              mfa_enabled as "twoFactorEnabled", created_at as "createdAt", updated_at as "updatedAt"
       FROM users
       WHERE id = $1
@@ -144,7 +145,8 @@ export class UsersService {
       UPDATE users
       SET ${setClauses.join(', ')}, updated_at = NOW()
       WHERE id = $${paramIndex}
-      RETURNING id, email, password_hash as "passwordHash",                 phone as "phoneNumber", kyc_status as "kycStatus", kyc_level as "kycLevel",
+      RETURNING id, email, full_name as "fullName", password_hash as "passwordHash",
+                phone as "phoneNumber", kyc_status as "kycStatus", kyc_level as "kycLevel",
                 mfa_enabled as "twoFactorEnabled", created_at as "createdAt", updated_at as "updatedAt"
     `;
 

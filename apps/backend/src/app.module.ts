@@ -7,6 +7,7 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { WalletsModule } from './wallets/wallets.module';
 import { TransactionsModule } from './transactions/transactions.module';
+import { OtpModule } from './otp/otp.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { TransactionsModule } from './transactions/transactions.module';
     UsersModule,
     WalletsModule,
     TransactionsModule,
+    OtpModule,
   ],
   controllers: [AppController],
   providers: [AppService],
