@@ -1,41 +1,33 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Animated,
   RefreshControl,
 } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSelector } from 'react-redux';
 import { RootState } from '../../store';
-import { Colors, Spacing, FontSizes, BorderRadius } from '../../theme/colors';
+import { DSCard, colors, typography, spacing, radii, shadows, gradients } from '../../design-system';
 
-const TOKEN_DATA: Record<string, { name: string; symbol: string; gradient: [string, string]; icon: string }> = {
-  BTC: { name: 'Bitcoin', symbol: '₿', gradient: ['#F7931A', '#FFA726'], icon: '🟠' },
-  ETH: { name: 'Ethereum', symbol: 'Ξ', gradient: ['#627EEA', '#4A90E2'], icon: '💎' },
-  USDC: { name: 'USD Coin', symbol: '$', gradient: ['#2775CA', '#1E88E5'], icon: '🔵' },
-  USDT: { name: 'Tether', symbol: '₮', gradient: ['#26A17B', '#4CAF50'], icon: '🟢' },
+const TOKEN_META: Record<string, { name: string; icon: keyof typeof Feather.glyphMap; gradient: [string, string] }> = {
+  BTC: { name: 'Bitcoin', icon: 'circle', gradient: gradients.bitcoin },
+  ETH: { name: 'Ethereum', icon: 'hexagon', gradient: gradients.ethereum },
+  USDC: { name: 'USD Coin', icon: 'dollar-sign', gradient: gradients.usdc },
+  USDT: { name: 'Tether', icon: 'dollar-sign', gradient: gradients.usdt },
 };
 
-const MOCK_PRICE_DATA: Record<string, { price: number; change24h: number; high24h: number; low24h: number; marketCap: string; volume: string }> = {
+const MOCK_PRICES: Record<string, { price: number; change24h: number; high24h: number; low24h: number; marketCap: string; volume: string }> = {
   BTC: { price: 43150.00, change24h: 2.34, high24h: 43890.00, low24h: 42100.00, marketCap: '$845B', volume: '$28.5B' },
   ETH: { price: 2342.00, change24h: -0.85, high24h: 2390.00, low24h: 2310.00, marketCap: '$281B', volume: '$15.2B' },
   USDC: { price: 1.00, change24h: 0.01, high24h: 1.001, low24h: 0.999, marketCap: '$25B', volume: '$8.1B' },
   USDT: { price: 1.00, change24h: -0.02, high24h: 1.002, low24h: 0.998, marketCap: '$95B', volume: '$52.3B' },
 };
 
-interface Transaction {
-  id: string;
-  type: 'send' | 'receive';
-  amount: string;
-  date: string;
-  status: 'completed' | 'pending';
-}
-
-const MOCK_TOKEN_TXS: Record<string, Transaction[]> = {
+const MOCK_TXS: Record<string, Array<{ id: string; type: 'send' | 'receive'; amount: string; date: string; status: 'completed' | 'pending' }>> = {
   BTC: [
     { id: '1', type: 'receive', amount: '0.01', date: 'Feb 7', status: 'completed' },
     { id: '2', type: 'send', amount: '0.005', date: 'Feb 4', status: 'completed' },
@@ -55,28 +47,12 @@ export default function TokenDetailScreen({ route, navigation }: any) {
   const token = route?.params?.token || 'BTC';
   const { balances } = useSelector((state: RootState) => state.wallet);
   const balance = balances.find((b) => b.token === token);
-  const tokenInfo = TOKEN_DATA[token] || TOKEN_DATA.BTC;
-  const priceData = MOCK_PRICE_DATA[token] || MOCK_PRICE_DATA.BTC;
-  const transactions = MOCK_TOKEN_TXS[token] || [];
-
+  const meta = TOKEN_META[token] || TOKEN_META.BTC;
+  const priceData = MOCK_PRICES[token] || MOCK_PRICES.BTC;
+  const transactions = MOCK_TXS[token] || [];
   const [refreshing, setRefreshing] = useState(false);
-  const headerFade = useRef(new Animated.Value(0)).current;
-  const headerSlide = useRef(new Animated.Value(-20)).current;
-  const contentFade = useRef(new Animated.Value(0)).current;
-  const contentSlide = useRef(new Animated.Value(30)).current;
 
-  useEffect(() => {
-    Animated.stagger(150, [
-      Animated.parallel([
-        Animated.timing(headerFade, { toValue: 1, duration: 500, useNativeDriver: true }),
-        Animated.spring(headerSlide, { toValue: 0, friction: 8, tension: 40, useNativeDriver: true }),
-      ]),
-      Animated.parallel([
-        Animated.timing(contentFade, { toValue: 1, duration: 400, useNativeDriver: true }),
-        Animated.spring(contentSlide, { toValue: 0, friction: 8, tension: 40, useNativeDriver: true }),
-      ]),
-    ]).start();
-  }, []);
+  const isPositive = priceData.change24h >= 0;
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -84,233 +60,342 @@ export default function TokenDetailScreen({ route, navigation }: any) {
     setRefreshing(false);
   };
 
-  const isPositive = priceData.change24h >= 0;
+  const actions = [
+    { key: 'send', label: 'Send', icon: 'arrow-up-right' as const, route: 'Send' },
+    { key: 'receive', label: 'Receive', icon: 'arrow-down-left' as const, route: 'Receive' },
+    { key: 'swap', label: 'Swap', icon: 'repeat' as const, route: 'Swap' },
+  ];
 
   return (
-    <View style={styles.container}>
+    <View style={styles.screen}>
       {/* Header */}
-      <LinearGradient colors={tokenInfo.gradient} style={styles.header}>
-        <View style={styles.headerDecor} />
-        <Animated.View style={{ opacity: headerFade, transform: [{ translateY: headerSlide }] }}>
-          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
-            <Text style={styles.backIcon}>‹</Text>
-            <Text style={styles.backText}>Back</Text>
-          </TouchableOpacity>
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+          <Feather name="arrow-left" size={22} color={colors.neutral[800]} />
+        </TouchableOpacity>
+        <View style={styles.headerCenter}>
+          <LinearGradient colors={meta.gradient} style={styles.headerIcon}>
+            <Feather name={meta.icon} size={14} color={colors.white} />
+          </LinearGradient>
+          <Text style={styles.headerTitle}>{meta.name}</Text>
+        </View>
+        <View style={styles.headerRight} />
+      </View>
 
-          <View style={styles.headerRow}>
-            <View>
-              <Text style={styles.headerTitle}>{tokenInfo.name}</Text>
-              <Text style={styles.headerSubtitle}>{token}</Text>
-            </View>
-            <Text style={styles.tokenIcon}>{tokenInfo.icon}</Text>
-          </View>
-
-          {/* Balance Card */}
-          <View style={styles.balanceCard}>
-            <Text style={styles.balanceLabel}>Your Balance</Text>
-            <Text style={styles.balanceAmount}>
-              {balance ? parseFloat(balance.balance).toFixed(6) : '0.000000'} {token}
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.primary[500]}
+            colors={[colors.primary[500]]}
+          />
+        }
+      >
+        {/* Balance */}
+        <View style={styles.balanceSection}>
+          <Text style={styles.balanceUsd}>
+            ${balance ? balance.balanceUsd.toLocaleString('en-US', { minimumFractionDigits: 2 }) : '0.00'}
+          </Text>
+          <Text style={styles.balanceCrypto}>
+            {balance ? parseFloat(balance.balance).toFixed(token === 'USDC' || token === 'USDT' ? 2 : 6) : '0.000000'} {token}
+          </Text>
+          <View style={styles.changeBadge}>
+            <Feather
+              name={isPositive ? 'trending-up' : 'trending-down'}
+              size={14}
+              color={isPositive ? colors.success : colors.error}
+            />
+            <Text style={[styles.changeText, { color: isPositive ? colors.success : colors.error }]}>
+              {isPositive ? '+' : ''}{priceData.change24h.toFixed(2)}% today
             </Text>
-            <Text style={styles.balanceUsd}>
-              ${balance ? balance.balanceUsd.toLocaleString('en-US', { minimumFractionDigits: 2 }) : '0.00'}
-            </Text>
           </View>
-        </Animated.View>
-      </LinearGradient>
+        </View>
 
-      <Animated.View style={[styles.contentWrapper, { opacity: contentFade, transform: [{ translateY: contentSlide }] }]}>
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.contentContainer}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} colors={[Colors.primary]} />
-          }
-        >
-          {/* Action Buttons */}
-          <View style={styles.actionsRow}>
-            <TouchableOpacity style={styles.actionBtn} onPress={() => navigation.navigate('Send')}>
-              <LinearGradient colors={[Colors.primary, Colors.secondary]} style={styles.actionGradient}>
-                <Text style={styles.actionIcon}>↑</Text>
-              </LinearGradient>
-              <Text style={styles.actionLabel}>Send</Text>
+        {/* Actions */}
+        <View style={styles.actionsRow}>
+          {actions.map((a) => (
+            <TouchableOpacity
+              key={a.key}
+              style={styles.actionBtn}
+              activeOpacity={0.7}
+              onPress={() => navigation.navigate(a.route)}
+            >
+              <View style={styles.actionCircle}>
+                <Feather name={a.icon} size={20} color={colors.primary[600]} />
+              </View>
+              <Text style={styles.actionLabel}>{a.label}</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.actionBtn} onPress={() => navigation.navigate('Receive')}>
-              <LinearGradient colors={['#10B981', '#059669']} style={styles.actionGradient}>
-                <Text style={styles.actionIcon}>↓</Text>
-              </LinearGradient>
-              <Text style={styles.actionLabel}>Receive</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.actionBtn} onPress={() => navigation.navigate('Swap')}>
-              <LinearGradient colors={['#8B5CF6', '#7C3AED']} style={styles.actionGradient}>
-                <Text style={styles.actionIcon}>⇄</Text>
-              </LinearGradient>
-              <Text style={styles.actionLabel}>Swap</Text>
-            </TouchableOpacity>
-          </View>
+          ))}
+        </View>
 
-          {/* Price Info */}
-          <Text style={styles.sectionTitle}>Market Data</Text>
-          <View style={styles.priceCard}>
-            <View style={styles.priceRow}>
-              <Text style={styles.priceLabel}>Current Price</Text>
-              <Text style={styles.priceValue}>
-                ${priceData.price.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-              </Text>
+        {/* Market Data */}
+        <Text style={styles.sectionLabel}>Market Data</Text>
+        <DSCard variant="default" padding={0}>
+          {[
+            { label: 'Price', value: `$${priceData.price.toLocaleString('en-US', { minimumFractionDigits: 2 })}` },
+            { label: '24h High', value: `$${priceData.high24h.toLocaleString('en-US', { minimumFractionDigits: 2 })}` },
+            { label: '24h Low', value: `$${priceData.low24h.toLocaleString('en-US', { minimumFractionDigits: 2 })}` },
+            { label: 'Market Cap', value: priceData.marketCap },
+            { label: '24h Volume', value: priceData.volume },
+          ].map((row, i, arr) => (
+            <View
+              key={row.label}
+              style={[styles.dataRow, i < arr.length - 1 && styles.dataRowBorder]}
+            >
+              <Text style={styles.dataLabel}>{row.label}</Text>
+              <Text style={styles.dataValue}>{row.value}</Text>
             </View>
-            <View style={styles.priceRow}>
-              <Text style={styles.priceLabel}>24h Change</Text>
-              <Text style={[styles.priceValue, { color: isPositive ? Colors.success : Colors.error }]}>
-                {isPositive ? '+' : ''}{priceData.change24h.toFixed(2)}%
-              </Text>
-            </View>
-            <View style={styles.priceRow}>
-              <Text style={styles.priceLabel}>24h High</Text>
-              <Text style={styles.priceValue}>
-                ${priceData.high24h.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-              </Text>
-            </View>
-            <View style={styles.priceRow}>
-              <Text style={styles.priceLabel}>24h Low</Text>
-              <Text style={styles.priceValue}>
-                ${priceData.low24h.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-              </Text>
-            </View>
-            <View style={styles.divider} />
-            <View style={styles.priceRow}>
-              <Text style={styles.priceLabel}>Market Cap</Text>
-              <Text style={styles.priceValue}>{priceData.marketCap}</Text>
-            </View>
-            <View style={[styles.priceRow, { borderBottomWidth: 0 }]}>
-              <Text style={styles.priceLabel}>24h Volume</Text>
-              <Text style={styles.priceValue}>{priceData.volume}</Text>
-            </View>
-          </View>
+          ))}
+        </DSCard>
 
-          {/* Recent Transactions */}
-          <Text style={styles.sectionTitle}>Recent Activity</Text>
-          {transactions.length === 0 ? (
-            <View style={styles.emptyCard}>
-              <Text style={styles.emptyIcon}>📭</Text>
+        {/* Recent Activity */}
+        <Text style={styles.sectionLabel}>Recent Activity</Text>
+        {transactions.length === 0 ? (
+          <DSCard variant="default">
+            <View style={styles.emptyState}>
+              <Feather name="inbox" size={36} color={colors.neutral[300]} />
               <Text style={styles.emptyText}>No {token} transactions yet</Text>
             </View>
-          ) : (
-            <View style={styles.txList}>
-              {transactions.map((tx) => (
-                <View key={tx.id} style={styles.txItem}>
-                  <View style={styles.txLeft}>
-                    <View style={[styles.txIconBg, { backgroundColor: tx.type === 'receive' ? '#ECFDF5' : '#FEF2F2' }]}>
-                      <Text style={[styles.txIconText, { color: tx.type === 'receive' ? Colors.success : Colors.error }]}>
-                        {tx.type === 'receive' ? '↓' : '↑'}
-                      </Text>
-                    </View>
-                    <View>
-                      <Text style={styles.txType}>{tx.type === 'receive' ? 'Received' : 'Sent'}</Text>
-                      <Text style={styles.txDate}>{tx.date}</Text>
-                    </View>
-                  </View>
-                  <View style={styles.txRight}>
-                    <Text style={[styles.txAmount, { color: tx.type === 'receive' ? Colors.success : Colors.gray900 }]}>
-                      {tx.type === 'receive' ? '+' : '-'}{tx.amount} {token}
-                    </Text>
-                    <View style={[styles.txStatus, { backgroundColor: tx.status === 'completed' ? '#ECFDF5' : '#FFFBEB' }]}>
-                      <Text style={[styles.txStatusText, { color: tx.status === 'completed' ? Colors.success : Colors.warning }]}>
-                        {tx.status === 'completed' ? 'Completed' : 'Pending'}
-                      </Text>
-                    </View>
-                  </View>
+          </DSCard>
+        ) : (
+          <DSCard variant="default" padding={0}>
+            {transactions.map((tx, i) => (
+              <View
+                key={tx.id}
+                style={[styles.txRow, i < transactions.length - 1 && styles.dataRowBorder]}
+              >
+                <View style={[styles.txIconBg, { backgroundColor: tx.type === 'receive' ? '#ECFDF5' : '#FEF2F2' }]}>
+                  <Feather
+                    name={tx.type === 'receive' ? 'arrow-down-left' : 'arrow-up-right'}
+                    size={14}
+                    color={tx.type === 'receive' ? colors.success : colors.error}
+                  />
                 </View>
-              ))}
-            </View>
-          )}
-
-          {/* Wallet Address */}
-          {balance && (
-            <>
-              <Text style={styles.sectionTitle}>Wallet Address</Text>
-              <View style={styles.addressCard}>
-                <Text style={styles.addressText} numberOfLines={1}>
-                  {balance.address}
+                <View style={styles.txInfo}>
+                  <Text style={styles.txType}>{tx.type === 'receive' ? 'Received' : 'Sent'}</Text>
+                  <Text style={styles.txDate}>{tx.date}</Text>
+                </View>
+                <Text
+                  style={[
+                    styles.txAmount,
+                    { color: tx.type === 'receive' ? colors.success : colors.neutral[800] },
+                  ]}
+                >
+                  {tx.type === 'receive' ? '+' : '-'}{tx.amount} {token}
                 </Text>
               </View>
-            </>
-          )}
-        </ScrollView>
-      </Animated.View>
+            ))}
+          </DSCard>
+        )}
+
+        {/* Wallet Address */}
+        {balance && (
+          <>
+            <Text style={styles.sectionLabel}>Wallet Address</Text>
+            <DSCard variant="default">
+              <Text style={styles.addressText} numberOfLines={1}>
+                {balance.address}
+              </Text>
+            </DSCard>
+          </>
+        )}
+      </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.gray50 },
-  header: { paddingTop: 60, paddingBottom: 24, paddingHorizontal: Spacing.xl, overflow: 'hidden' },
-  headerDecor: {
-    position: 'absolute', width: 180, height: 180, borderRadius: 90,
-    backgroundColor: 'rgba(255,255,255,0.08)', top: -60, right: -40,
+  screen: {
+    flex: 1,
+    backgroundColor: colors.neutral[50],
   },
-  backButton: { flexDirection: 'row', alignItems: 'center', marginBottom: Spacing.md, gap: 4 },
-  backIcon: { fontSize: 28, color: Colors.white, fontWeight: '300', marginTop: -2 },
-  backText: { fontSize: FontSizes.md, color: 'rgba(255,255,255,0.8)', fontWeight: '500' },
-  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.lg },
-  headerTitle: { fontSize: 28, fontWeight: '800', color: Colors.white },
-  headerSubtitle: { fontSize: FontSizes.sm, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
-  tokenIcon: { fontSize: 40 },
-  balanceCard: {
-    backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: BorderRadius.xl,
-    padding: Spacing.xl, alignItems: 'center',
+
+  // Header
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingTop: 56,
+    paddingBottom: spacing[3],
+    paddingHorizontal: spacing[5],
+    backgroundColor: colors.white,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.neutral[200],
   },
-  balanceLabel: { fontSize: FontSizes.xs, color: 'rgba(255,255,255,0.7)', marginBottom: 4 },
-  balanceAmount: { fontSize: FontSizes.xxl, fontWeight: '800', color: Colors.white, marginBottom: 4 },
-  balanceUsd: { fontSize: FontSizes.md, color: 'rgba(255,255,255,0.8)', fontWeight: '600' },
-  contentWrapper: { flex: 1 },
-  contentContainer: { padding: Spacing.xl, paddingBottom: Spacing.huge },
-  actionsRow: { flexDirection: 'row', justifyContent: 'center', gap: 24, marginBottom: Spacing.xxl },
-  actionBtn: { alignItems: 'center', gap: 8 },
-  actionGradient: { width: 52, height: 52, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
-  actionIcon: { fontSize: 22, color: Colors.white, fontWeight: 'bold' },
-  actionLabel: { fontSize: FontSizes.xs, fontWeight: '600', color: Colors.gray500 },
-  sectionTitle: {
-    fontSize: FontSizes.xs, fontWeight: '700', color: Colors.gray400,
-    textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: Spacing.sm,
-    marginTop: Spacing.lg, marginLeft: Spacing.xs,
+  backBtn: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
   },
-  priceCard: {
-    backgroundColor: Colors.white, borderRadius: BorderRadius.xl, padding: Spacing.lg,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2,
+  headerCenter: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing[2],
   },
-  priceRow: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: Colors.gray100,
+  headerIcon: {
+    width: 28,
+    height: 28,
+    borderRadius: radii.sm,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  priceLabel: { fontSize: FontSizes.sm, color: Colors.gray500 },
-  priceValue: { fontSize: FontSizes.sm, fontWeight: '700', color: Colors.gray900 },
-  divider: { height: 1, backgroundColor: Colors.gray200, marginVertical: 4 },
-  txList: {
-    backgroundColor: Colors.white, borderRadius: BorderRadius.xl, overflow: 'hidden',
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2,
+  headerTitle: {
+    fontSize: typography.size.lg,
+    fontWeight: typography.weight.semiBold,
+    color: colors.neutral[800],
   },
-  txItem: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingVertical: 14, paddingHorizontal: Spacing.lg, borderBottomWidth: 1, borderBottomColor: Colors.gray100,
+  headerRight: {
+    width: 40,
   },
-  txLeft: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
-  txIconBg: { width: 36, height: 36, borderRadius: 10, justifyContent: 'center', alignItems: 'center' },
-  txIconText: { fontSize: 16, fontWeight: 'bold' },
-  txType: { fontSize: FontSizes.sm, fontWeight: '600', color: Colors.gray900 },
-  txDate: { fontSize: FontSizes.xs, color: Colors.gray400, marginTop: 2 },
-  txRight: { alignItems: 'flex-end' },
-  txAmount: { fontSize: FontSizes.sm, fontWeight: '700', marginBottom: 4 },
-  txStatus: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: BorderRadius.full },
-  txStatusText: { fontSize: 10, fontWeight: '700', textTransform: 'uppercase' },
-  emptyCard: {
-    backgroundColor: Colors.white, borderRadius: BorderRadius.xl, padding: Spacing.xxxl,
-    alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04, shadowRadius: 8, elevation: 2,
+
+  // Scroll
+  scrollContent: {
+    paddingHorizontal: spacing[5],
+    paddingBottom: spacing[10],
   },
-  emptyIcon: { fontSize: 36, marginBottom: Spacing.md },
-  emptyText: { fontSize: FontSizes.sm, color: Colors.gray400, fontWeight: '600' },
-  addressCard: {
-    backgroundColor: Colors.white, borderRadius: BorderRadius.xl, padding: Spacing.lg,
-    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2,
+
+  // Balance
+  balanceSection: {
+    alignItems: 'center',
+    paddingVertical: spacing[6],
   },
-  addressText: { fontSize: FontSizes.xs, color: Colors.gray500, fontFamily: 'monospace' },
+  balanceUsd: {
+    fontSize: 36,
+    fontWeight: typography.weight.bold,
+    color: colors.neutral[900],
+    letterSpacing: -0.5,
+  },
+  balanceCrypto: {
+    fontSize: typography.size.base,
+    color: colors.neutral[500],
+    marginTop: spacing[1],
+  },
+  changeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[1],
+    marginTop: spacing[3],
+    backgroundColor: colors.neutral[100],
+    paddingHorizontal: spacing[3],
+    paddingVertical: spacing[1],
+    borderRadius: radii.full,
+  },
+  changeText: {
+    fontSize: typography.size.sm,
+    fontWeight: typography.weight.medium,
+  },
+
+  // Actions
+  actionsRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: spacing[8],
+    marginBottom: spacing[6],
+  },
+  actionBtn: {
+    alignItems: 'center',
+    gap: spacing[2],
+  },
+  actionCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: radii.full,
+    backgroundColor: colors.primary[50],
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  actionLabel: {
+    fontSize: typography.size.xs,
+    fontWeight: typography.weight.medium,
+    color: colors.neutral[600],
+  },
+
+  // Section
+  sectionLabel: {
+    fontSize: typography.size.xs,
+    fontWeight: typography.weight.semiBold,
+    color: colors.neutral[400],
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
+    marginTop: spacing[5],
+    marginBottom: spacing[2],
+    marginLeft: spacing[1],
+  },
+
+  // Data rows
+  dataRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: spacing[3],
+    paddingHorizontal: spacing[4],
+  },
+  dataRowBorder: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.neutral[200],
+  },
+  dataLabel: {
+    fontSize: typography.size.sm,
+    color: colors.neutral[500],
+  },
+  dataValue: {
+    fontSize: typography.size.sm,
+    fontWeight: typography.weight.semiBold,
+    color: colors.neutral[800],
+  },
+
+  // Transactions
+  txRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing[3],
+    paddingHorizontal: spacing[4],
+  },
+  txIconBg: {
+    width: 34,
+    height: 34,
+    borderRadius: radii.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing[3],
+  },
+  txInfo: {
+    flex: 1,
+  },
+  txType: {
+    fontSize: typography.size.sm,
+    fontWeight: typography.weight.medium,
+    color: colors.neutral[800],
+  },
+  txDate: {
+    fontSize: typography.size.xs,
+    color: colors.neutral[400],
+    marginTop: 1,
+  },
+  txAmount: {
+    fontSize: typography.size.sm,
+    fontWeight: typography.weight.semiBold,
+  },
+
+  // Empty
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: spacing[8],
+    gap: spacing[3],
+  },
+  emptyText: {
+    fontSize: typography.size.sm,
+    color: colors.neutral[400],
+  },
+
+  // Address
+  addressText: {
+    fontSize: typography.size.xs,
+    color: colors.neutral[500],
+    fontFamily: 'monospace',
+  },
 });

@@ -1,13 +1,28 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, ScrollView, RefreshControl, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  RefreshControl,
+  ActivityIndicator,
+  TouchableOpacity,
+  Image,
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Feather } from '@expo/vector-icons';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from '../../store';
 import { setBalances } from '../../store/walletSlice';
 import api from '../../services/api';
-import BalanceHeader from '../../components/BalanceHeader';
-import CryptoCard from '../../components/CryptoCard';
-import ActionButton from '../../components/ActionButton';
-import { Colors, Spacing } from '../../theme/colors';
+import { DSAssetRow, DSCard, colors, typography, spacing, radii, shadows, gradients } from '../../design-system';
+
+const ACTION_BUTTONS = [
+  { key: 'send', label: 'Send', icon: 'arrow-up-right' as const, route: 'Send' },
+  { key: 'receive', label: 'Receive', icon: 'arrow-down-left' as const, route: 'Receive' },
+  { key: 'swap', label: 'Swap', icon: 'repeat' as const, route: 'Swap' },
+  { key: 'buy', label: 'Buy', icon: 'plus' as const, route: 'Receive' },
+];
 
 export default function HomeScreen({ navigation }: any) {
   const dispatch = useDispatch();
@@ -41,105 +56,205 @@ export default function HomeScreen({ navigation }: any) {
   if (isLoading && balances.length === 0) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Colors.primary} />
+        <ActivityIndicator size="large" color={colors.primary[500]} />
       </View>
     );
   }
 
-  const userName = user?.fullName || user?.email?.split('@')[0] || 'User';
+  const firstName = (user?.fullName || user?.email?.split('@')[0] || 'there').split(' ')[0];
 
   return (
-    <View style={styles.container}>
+    <View style={styles.screen}>
       <ScrollView
-        style={styles.scrollView}
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={Colors.primary}
-            colors={[Colors.primary]}
+            tintColor={colors.primary[500]}
+            colors={[colors.primary[500]]}
           />
         }
       >
-        {/* Balance Header with Gradient */}
-        <BalanceHeader
-          totalBalance={totalUsd}
-          changePercent={0}
-          changeAmount={0}
-          userName={userName}
-        />
-
-        {/* Action Buttons */}
-        <View style={styles.actionsContainer}>
-          <ActionButton
-            icon="↑"
-            label="Send"
-            gradient={[Colors.primary, Colors.secondary]}
-            onPress={() => navigation.navigate('Send')}
-          />
-          <ActionButton
-            icon="↓"
-            label="Receive"
-            gradient={['#10B981', '#059669']}
-            onPress={() => navigation.navigate('Receive')}
-          />
-          <ActionButton
-            icon="⇄"
-            label="Swap"
-            gradient={['#8B5CF6', '#7C3AED']}
-            onPress={() => navigation.navigate('Swap')}
-          />
-          <ActionButton
-            icon="$"
-            label="Buy"
-            gradient={['#F59E0B', '#D97706']}
-            onPress={() => navigation.navigate('Receive')}
-          />
+        {/* ── Header ─────────────────────────────────────── */}
+        <View style={styles.header}>
+          <View style={styles.headerLeft}>
+            <Image
+              source={require('../../../assets/brand/si-star.png')}
+              style={styles.headerLogo}
+              resizeMode="contain"
+            />
+            <Text style={styles.greeting}>Hi, {firstName}</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.notifButton}
+            onPress={() => {}}
+            activeOpacity={0.6}
+          >
+            <Feather name="bell" size={20} color={colors.neutral[700]} />
+          </TouchableOpacity>
         </View>
 
-        {/* Crypto Cards */}
-        <View style={styles.cardsContainer}>
-          {balances.map((balance) => (
-            <CryptoCard
-              key={balance.token}
-              token={balance.token as 'BTC' | 'ETH' | 'USDC' | 'USDT'}
-              balance={balance.balance}
-              balanceUsd={balance.balanceUsd}
-              address={balance.address}
-              onPress={() => {
-                // Navigate to token details
-              }}
+        {/* ── Balance Card ───────────────────────────────── */}
+        <LinearGradient
+          colors={gradients.primary}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.balanceCard}
+        >
+          <Text style={styles.balanceLabel}>Total Balance</Text>
+          <Text style={styles.balanceAmount}>
+            ${totalUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </Text>
+
+          {/* Action Buttons */}
+          <View style={styles.actionsRow}>
+            {ACTION_BUTTONS.map((btn) => (
+              <TouchableOpacity
+                key={btn.key}
+                style={styles.actionBtn}
+                activeOpacity={0.7}
+                onPress={() => navigation.navigate(btn.route)}
+              >
+                <View style={styles.actionIconWrap}>
+                  <Feather name={btn.icon} size={20} color={colors.primary[700]} />
+                </View>
+                <Text style={styles.actionLabel}>{btn.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </LinearGradient>
+
+        {/* ── Asset List ─────────────────────────────────── */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Assets</Text>
+        </View>
+
+        <DSCard variant="default" padding={0}>
+          {balances.map((b, i) => (
+            <DSAssetRow
+              key={b.token}
+              token={b.token}
+              balance={b.balance}
+              balanceUsd={b.balanceUsd}
+              borderBottom={i < balances.length - 1}
+              onPress={() => navigation.navigate('TokenDetail', { token: b.token })}
             />
           ))}
-        </View>
+        </DSCard>
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  screen: {
     flex: 1,
-    backgroundColor: Colors.gray50,
+    backgroundColor: colors.neutral[50],
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.gray50,
+    backgroundColor: colors.neutral[50],
   },
-  scrollView: {
+  scroll: {
     flex: 1,
   },
-  actionsContainer: {
+  scrollContent: {
+    paddingBottom: spacing[10],
+  },
+
+  // Header
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing[5],
+    paddingTop: 56,
+    paddingBottom: spacing[4],
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing[3],
+  },
+  headerLogo: {
+    width: 28,
+    height: 28,
+  },
+  greeting: {
+    fontSize: typography.size.lg,
+    fontWeight: typography.weight.semiBold,
+    color: colors.neutral[800],
+  },
+  notifButton: {
+    width: 40,
+    height: 40,
+    borderRadius: radii.full,
+    backgroundColor: colors.white,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...shadows.sm,
+  },
+
+  // Balance Card
+  balanceCard: {
+    marginHorizontal: spacing[5],
+    borderRadius: radii['2xl'],
+    padding: spacing[6],
+    marginBottom: spacing[6],
+  },
+  balanceLabel: {
+    fontSize: typography.size.sm,
+    color: 'rgba(255,255,255,0.75)',
+    fontWeight: typography.weight.medium,
+    marginBottom: spacing[1],
+  },
+  balanceAmount: {
+    fontSize: 36,
+    fontWeight: typography.weight.bold,
+    color: colors.white,
+    letterSpacing: -0.5,
+    marginBottom: spacing[6],
+  },
+
+  // Actions
+  actionsRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.xxl,
   },
-  cardsContainer: {
-    paddingHorizontal: Spacing.xl,
-    paddingBottom: Spacing.xxxl,
+  actionBtn: {
+    alignItems: 'center',
+    gap: spacing[2],
+  },
+  actionIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: radii.full,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  actionLabel: {
+    fontSize: typography.size.xs,
+    fontWeight: typography.weight.medium,
+    color: colors.white,
+  },
+
+  // Section
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: spacing[5],
+    marginBottom: spacing[3],
+  },
+  sectionTitle: {
+    fontSize: typography.size.lg,
+    fontWeight: typography.weight.semiBold,
+    color: colors.neutral[800],
   },
 });

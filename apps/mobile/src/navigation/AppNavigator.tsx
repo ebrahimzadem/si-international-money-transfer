@@ -1,11 +1,12 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { Feather } from '@expo/vector-icons';
 import { useSelector } from 'react-redux';
 import { RootState } from '../store';
-import { Colors } from '../theme/colors';
+import { colors, shadows } from '../design-system';
 
 // Screens
 import LoginScreen from '../screens/Auth/LoginScreen';
@@ -16,46 +17,37 @@ import ReceiveScreen from '../screens/Receive/ReceiveScreen';
 import SwapScreen from '../screens/Swap/SwapScreen';
 import TransactionsScreen from '../screens/Transactions/TransactionsScreen';
 import ProfileScreen from '../screens/Profile/ProfileScreen';
+import TokenDetailScreen from '../screens/TokenDetail/TokenDetailScreen';
 
 const Stack = createNativeStackNavigator();
 const Tab = createBottomTabNavigator();
 
-interface TabIconProps {
-  icon: string;
-  label: string;
-  focused: boolean;
-}
-
-function TabIcon({ icon, focused }: TabIconProps) {
-  return (
-    <View style={tabStyles.container}>
-      <Text
-        style={[
-          tabStyles.icon,
-          { color: focused ? Colors.primary : Colors.gray400 },
-        ]}
-      >
-        {icon}
-      </Text>
-      {focused && <View style={tabStyles.dot} />}
-    </View>
-  );
-}
+const TAB_ICONS: Record<string, keyof typeof Feather.glyphMap> = {
+  Home: 'grid',
+  Transactions: 'clock',
+  Profile: 'user',
+};
 
 function MainTabs() {
   return (
     <Tab.Navigator
-      screenOptions={{
-        tabBarActiveTintColor: Colors.primary,
-        tabBarInactiveTintColor: Colors.gray400,
+      screenOptions={({ route }) => ({
         headerShown: false,
+        tabBarActiveTintColor: colors.primary[600],
+        tabBarInactiveTintColor: colors.neutral[400],
+        tabBarIcon: ({ color, focused }) => (
+          <View style={tabStyles.iconWrap}>
+            <Feather name={TAB_ICONS[route.name]} size={22} color={color} />
+            {focused && <View style={tabStyles.dot} />}
+          </View>
+        ),
         tabBarStyle: {
-          backgroundColor: Colors.white,
+          backgroundColor: colors.white,
           borderTopWidth: 0,
           elevation: 20,
           shadowColor: '#000',
           shadowOffset: { width: 0, height: -4 },
-          shadowOpacity: 0.08,
+          shadowOpacity: 0.06,
           shadowRadius: 12,
           height: 70,
           paddingBottom: 10,
@@ -63,59 +55,40 @@ function MainTabs() {
         },
         tabBarLabelStyle: {
           fontSize: 11,
-          fontWeight: '600',
+          fontWeight: '600' as const,
           marginTop: 2,
         },
-      }}
+      })}
     >
       <Tab.Screen
         name="Home"
         component={HomeScreen}
-        options={{
-          tabBarLabel: 'Wallet',
-          tabBarIcon: ({ focused }) => (
-            <TabIcon icon="◈" label="Wallet" focused={focused} />
-          ),
-        }}
+        options={{ tabBarLabel: 'Wallet' }}
       />
       <Tab.Screen
         name="Transactions"
         component={TransactionsScreen}
-        options={{
-          tabBarLabel: 'Activity',
-          tabBarIcon: ({ focused }) => (
-            <TabIcon icon="↕" label="Activity" focused={focused} />
-          ),
-        }}
+        options={{ tabBarLabel: 'Activity' }}
       />
       <Tab.Screen
         name="Profile"
         component={ProfileScreen}
-        options={{
-          tabBarLabel: 'Profile',
-          tabBarIcon: ({ focused }) => (
-            <TabIcon icon="●" label="Profile" focused={focused} />
-          ),
-        }}
+        options={{ tabBarLabel: 'Profile' }}
       />
     </Tab.Navigator>
   );
 }
 
 const tabStyles = StyleSheet.create({
-  container: {
+  iconWrap: {
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  icon: {
-    fontSize: 22,
-    fontWeight: '700',
   },
   dot: {
     width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: Colors.primary,
+    backgroundColor: colors.primary[600],
     marginTop: 3,
   },
 });
@@ -145,6 +118,7 @@ export default function AppNavigator() {
             <Stack.Screen name="Send" component={SendScreen} />
             <Stack.Screen name="Receive" component={ReceiveScreen} />
             <Stack.Screen name="Swap" component={SwapScreen} />
+            <Stack.Screen name="TokenDetail" component={TokenDetailScreen} />
           </>
         )}
       </Stack.Navigator>

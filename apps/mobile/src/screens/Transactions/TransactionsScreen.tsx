@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -6,10 +6,10 @@ import {
   ScrollView,
   RefreshControl,
   TouchableOpacity,
-  Animated,
 } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Colors, Spacing, FontSizes, BorderRadius } from '../../theme/colors';
+import { colors, typography, spacing, radii, gradients } from '../../design-system';
 
 interface Transaction {
   id: string;
@@ -85,145 +85,29 @@ const MOCK_TRANSACTIONS: Transaction[] = [
   },
 ];
 
-const TOKEN_COLORS: Record<string, [string, string]> = {
-  BTC: ['#F7931A', '#FFA726'],
-  ETH: ['#627EEA', '#4A90E2'],
-  USDC: ['#2775CA', '#1E88E5'],
-  USDT: ['#26A17B', '#4CAF50'],
+const TOKEN_GRADIENTS: Record<string, [string, string]> = {
+  BTC: gradients.bitcoin,
+  ETH: gradients.ethereum,
+  USDC: gradients.usdc,
+  USDT: gradients.usdt,
 };
 
-const TYPE_CONFIG = {
-  send: { icon: '↑', label: 'Sent', color: Colors.error },
-  receive: { icon: '↓', label: 'Received', color: Colors.success },
-  swap: { icon: '⇄', label: 'Swapped', color: '#8B5CF6' },
+const TYPE_ICON: Record<string, keyof typeof Feather.glyphMap> = {
+  send: 'arrow-up-right',
+  receive: 'arrow-down-left',
+  swap: 'repeat',
 };
 
 const STATUS_CONFIG = {
-  completed: { label: 'Completed', color: Colors.success, bg: '#ECFDF5' },
-  pending: { label: 'Pending', color: Colors.warning, bg: '#FFFBEB' },
-  failed: { label: 'Failed', color: Colors.error, bg: '#FEF2F2' },
+  completed: { label: 'Completed', color: colors.success, bg: '#ECFDF5' },
+  pending: { label: 'Pending', color: colors.warning, bg: '#FFFBEB' },
+  failed: { label: 'Failed', color: colors.error, bg: '#FEF2F2' },
 };
-
-interface TxCardProps {
-  tx: Transaction;
-  index: number;
-}
-
-function TransactionCard({ tx, index }: TxCardProps) {
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(40)).current;
-  const scaleAnim = useRef(new Animated.Value(1)).current;
-
-  useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 400,
-        delay: index * 80,
-        useNativeDriver: true,
-      }),
-      Animated.spring(slideAnim, {
-        toValue: 0,
-        friction: 8,
-        tension: 40,
-        delay: index * 80,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, []);
-
-  const handlePressIn = () => {
-    Animated.spring(scaleAnim, {
-      toValue: 0.97,
-      useNativeDriver: true,
-    }).start();
-  };
-
-  const handlePressOut = () => {
-    Animated.spring(scaleAnim, {
-      toValue: 1,
-      friction: 3,
-      tension: 40,
-      useNativeDriver: true,
-    }).start();
-  };
-
-  const typeInfo = TYPE_CONFIG[tx.type];
-  const statusInfo = STATUS_CONFIG[tx.status];
-  const tokenColors: [string, string] = TOKEN_COLORS[tx.token] || [Colors.primary, Colors.secondary];
-  const date = new Date(tx.createdAt);
-  const formattedDate = date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-  });
-  const formattedTime = date.toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-
-  return (
-    <Animated.View
-      style={{
-        opacity: fadeAnim,
-        transform: [{ translateY: slideAnim }, { scale: scaleAnim }],
-      }}
-    >
-      <TouchableOpacity
-        style={styles.txCard}
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
-        activeOpacity={1}
-      >
-        {/* Left: Icon + Info */}
-        <View style={styles.txLeft}>
-          <LinearGradient
-            colors={tokenColors}
-            style={styles.txIconContainer}
-          >
-            <Text style={styles.txIcon}>{typeInfo.icon}</Text>
-          </LinearGradient>
-          <View style={styles.txInfo}>
-            <Text style={styles.txTitle}>
-              {typeInfo.label} {tx.token}
-            </Text>
-            <Text style={styles.txAddress}>
-              {tx.type === 'swap'
-                ? `→ ${tx.toAddress}`
-                : `${tx.toAddress.slice(0, 8)}...${tx.toAddress.slice(-4)}`}
-            </Text>
-            <Text style={styles.txDate}>{formattedDate} at {formattedTime}</Text>
-          </View>
-        </View>
-
-        {/* Right: Amount + Status */}
-        <View style={styles.txRight}>
-          <Text
-            style={[
-              styles.txAmount,
-              { color: tx.type === 'receive' ? Colors.success : Colors.gray900 },
-            ]}
-          >
-            {tx.type === 'receive' ? '+' : '-'}{tx.amount} {tx.token}
-          </Text>
-          <Text style={styles.txUsd}>${tx.usdValue.toLocaleString()}</Text>
-          <View style={[styles.statusBadge, { backgroundColor: statusInfo.bg }]}>
-            <Text style={[styles.statusText, { color: statusInfo.color }]}>
-              {statusInfo.label}
-            </Text>
-          </View>
-        </View>
-      </TouchableOpacity>
-    </Animated.View>
-  );
-}
 
 export default function TransactionsScreen() {
   const [transactions, setTransactions] = useState<Transaction[]>(MOCK_TRANSACTIONS);
   const [refreshing, setRefreshing] = useState(false);
   const [activeFilter, setActiveFilter] = useState<'all' | 'send' | 'receive' | 'swap'>('all');
-
-  const headerFade = useRef(new Animated.Value(0)).current;
-  const headerSlide = useRef(new Animated.Value(-20)).current;
 
   const loadTransactions = async () => {
     try {
@@ -249,19 +133,6 @@ export default function TransactionsScreen() {
 
   useEffect(() => {
     loadTransactions();
-    Animated.parallel([
-      Animated.timing(headerFade, {
-        toValue: 1,
-        duration: 500,
-        useNativeDriver: true,
-      }),
-      Animated.spring(headerSlide, {
-        toValue: 0,
-        friction: 8,
-        tension: 40,
-        useNativeDriver: true,
-      }),
-    ]).start();
   }, []);
 
   const onRefresh = async () => {
@@ -282,36 +153,26 @@ export default function TransactionsScreen() {
   ];
 
   return (
-    <View style={styles.container}>
+    <View style={styles.screen}>
       {/* Header */}
-      <LinearGradient
-        colors={[Colors.primary, Colors.primaryLight]}
-        style={styles.header}
-      >
-        <View style={styles.headerDecor} />
-        <Animated.View
-          style={{
-            opacity: headerFade,
-            transform: [{ translateY: headerSlide }],
-          }}
-        >
-          <Text style={styles.headerTitle}>Activity</Text>
-          <Text style={styles.headerSubtitle}>
-            {transactions.length} transactions
-          </Text>
-        </Animated.View>
-      </LinearGradient>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Activity</Text>
+        <Text style={styles.headerSubtitle}>
+          {transactions.length} transactions
+        </Text>
+      </View>
 
       {/* Filters */}
-      <View style={styles.filterContainer}>
+      <View style={styles.filterRow}>
         {filters.map((f) => (
           <TouchableOpacity
             key={f.key}
             style={[
-              styles.filterButton,
-              activeFilter === f.key && styles.filterButtonActive,
+              styles.filterChip,
+              activeFilter === f.key && styles.filterChipActive,
             ]}
             onPress={() => setActiveFilter(f.key)}
+            activeOpacity={0.7}
           >
             <Text
               style={[
@@ -325,7 +186,7 @@ export default function TransactionsScreen() {
         ))}
       </View>
 
-      {/* Transaction List */}
+      {/* Transactions */}
       <ScrollView
         style={styles.list}
         contentContainerStyle={styles.listContent}
@@ -334,14 +195,14 @@ export default function TransactionsScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={Colors.primary}
-            colors={[Colors.primary]}
+            tintColor={colors.primary[500]}
+            colors={[colors.primary[500]]}
           />
         }
       >
         {filteredTx.length === 0 ? (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>📭</Text>
+            <Feather name="inbox" size={48} color={colors.neutral[300]} />
             <Text style={styles.emptyText}>No transactions</Text>
             <Text style={styles.emptySubtext}>
               {activeFilter === 'all'
@@ -350,9 +211,56 @@ export default function TransactionsScreen() {
             </Text>
           </View>
         ) : (
-          filteredTx.map((tx, index) => (
-            <TransactionCard key={tx.id} tx={tx} index={index} />
-          ))
+          filteredTx.map((tx) => {
+            const statusInfo = STATUS_CONFIG[tx.status];
+            const tokenGrad = TOKEN_GRADIENTS[tx.token] || gradients.primary;
+            const date = new Date(tx.createdAt);
+            const formattedDate = date.toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+            });
+
+            return (
+              <TouchableOpacity key={tx.id} style={styles.txRow} activeOpacity={0.6}>
+                <LinearGradient colors={tokenGrad} style={styles.txIcon}>
+                  <Feather
+                    name={TYPE_ICON[tx.type]}
+                    size={16}
+                    color={colors.white}
+                  />
+                </LinearGradient>
+
+                <View style={styles.txInfo}>
+                  <Text style={styles.txTitle}>
+                    {tx.type === 'send' ? 'Sent' : tx.type === 'receive' ? 'Received' : 'Swapped'} {tx.token}
+                  </Text>
+                  <Text style={styles.txMeta}>
+                    {tx.type === 'swap'
+                      ? `→ ${tx.toAddress}`
+                      : `${tx.toAddress.slice(0, 8)}...${tx.toAddress.slice(-4)}`}
+                    {' · '}
+                    {formattedDate}
+                  </Text>
+                </View>
+
+                <View style={styles.txRight}>
+                  <Text
+                    style={[
+                      styles.txAmount,
+                      { color: tx.type === 'receive' ? colors.success : colors.neutral[800] },
+                    ]}
+                  >
+                    {tx.type === 'receive' ? '+' : '-'}{tx.amount} {tx.token}
+                  </Text>
+                  <View style={[styles.statusBadge, { backgroundColor: statusInfo.bg }]}>
+                    <Text style={[styles.statusText, { color: statusInfo.color }]}>
+                      {statusInfo.label}
+                    </Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            );
+          })
         )}
       </ScrollView>
     </View>
@@ -360,159 +268,130 @@ export default function TransactionsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
+  screen: {
     flex: 1,
-    backgroundColor: Colors.gray50,
+    backgroundColor: colors.neutral[50],
   },
+
+  // Header
   header: {
     paddingTop: 60,
-    paddingBottom: 24,
-    paddingHorizontal: Spacing.xl,
-    overflow: 'hidden',
-  },
-  headerDecor: {
-    position: 'absolute',
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    top: -60,
-    right: -40,
+    paddingBottom: spacing[4],
+    paddingHorizontal: spacing[5],
+    backgroundColor: colors.white,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.neutral[200],
   },
   headerTitle: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: Colors.white,
+    fontSize: typography.size['2xl'],
+    fontWeight: typography.weight.bold,
+    color: colors.neutral[900],
   },
   headerSubtitle: {
-    fontSize: FontSizes.sm,
-    color: 'rgba(255,255,255,0.7)',
-    marginTop: 4,
+    fontSize: typography.size.sm,
+    color: colors.neutral[500],
+    marginTop: 2,
   },
-  filterContainer: {
+
+  // Filters
+  filterRow: {
     flexDirection: 'row',
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.md,
-    gap: 8,
+    paddingHorizontal: spacing[5],
+    paddingVertical: spacing[3],
+    gap: spacing[2],
+    backgroundColor: colors.white,
   },
-  filterButton: {
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: 8,
-    borderRadius: BorderRadius.full,
-    backgroundColor: Colors.white,
-    borderWidth: 1,
-    borderColor: Colors.gray200,
+  filterChip: {
+    paddingHorizontal: spacing[4],
+    paddingVertical: spacing[2],
+    borderRadius: radii.full,
+    backgroundColor: colors.neutral[100],
   },
-  filterButtonActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
+  filterChipActive: {
+    backgroundColor: colors.primary[500],
   },
   filterText: {
-    fontSize: FontSizes.sm,
-    fontWeight: '600',
-    color: Colors.gray500,
+    fontSize: typography.size.sm,
+    fontWeight: typography.weight.medium,
+    color: colors.neutral[500],
   },
   filterTextActive: {
-    color: Colors.white,
+    color: colors.white,
   },
+
+  // List
   list: {
     flex: 1,
   },
   listContent: {
-    paddingHorizontal: Spacing.xl,
-    paddingBottom: Spacing.xxxl,
+    paddingTop: spacing[3],
+    paddingBottom: spacing[10],
   },
-  txCard: {
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.lg,
-    marginBottom: Spacing.md,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  txLeft: {
+
+  // Transaction Row
+  txRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
-  },
-  txIconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: Spacing.md,
+    paddingVertical: spacing[3] + 2,
+    paddingHorizontal: spacing[5],
+    backgroundColor: colors.white,
+    marginBottom: 1,
   },
   txIcon: {
-    fontSize: 20,
-    color: Colors.white,
-    fontWeight: 'bold',
+    width: 40,
+    height: 40,
+    borderRadius: radii.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing[3],
   },
   txInfo: {
     flex: 1,
   },
   txTitle: {
-    fontSize: FontSizes.md,
-    fontWeight: '700',
-    color: Colors.gray900,
-    marginBottom: 2,
+    fontSize: typography.size.base,
+    fontWeight: typography.weight.semiBold,
+    color: colors.neutral[800],
   },
-  txAddress: {
-    fontSize: FontSizes.xs,
-    color: Colors.gray400,
-    marginBottom: 2,
-  },
-  txDate: {
-    fontSize: 11,
-    color: Colors.gray300,
+  txMeta: {
+    fontSize: typography.size.xs,
+    color: colors.neutral[400],
+    marginTop: 2,
   },
   txRight: {
     alignItems: 'flex-end',
   },
   txAmount: {
-    fontSize: FontSizes.md,
-    fontWeight: '700',
-    marginBottom: 2,
-  },
-  txUsd: {
-    fontSize: FontSizes.xs,
-    color: Colors.gray400,
+    fontSize: typography.size.base,
+    fontWeight: typography.weight.semiBold,
     marginBottom: 4,
   },
   statusBadge: {
-    paddingHorizontal: 8,
+    paddingHorizontal: spacing[2],
     paddingVertical: 2,
-    borderRadius: BorderRadius.full,
+    borderRadius: radii.full,
   },
   statusText: {
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: typography.weight.semiBold,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
+
+  // Empty
   emptyState: {
     paddingVertical: 80,
     alignItems: 'center',
-  },
-  emptyIcon: {
-    fontSize: 48,
-    marginBottom: Spacing.lg,
+    gap: spacing[3],
   },
   emptyText: {
-    fontSize: FontSizes.lg,
-    fontWeight: '700',
-    color: Colors.gray500,
-    marginBottom: Spacing.sm,
+    fontSize: typography.size.lg,
+    fontWeight: typography.weight.semiBold,
+    color: colors.neutral[500],
   },
   emptySubtext: {
-    fontSize: FontSizes.sm,
-    color: Colors.gray400,
+    fontSize: typography.size.sm,
+    color: colors.neutral[400],
     textAlign: 'center',
   },
 });
