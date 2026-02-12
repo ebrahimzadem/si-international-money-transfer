@@ -234,6 +234,14 @@ ul {
   color: var(--green-700);
 }
 
+.navbar__login {
+  font-weight: 600;
+  color: var(--green-700);
+}
+.navbar__login:hover {
+  color: var(--green-800);
+}
+
 .navbar__cta {
   margin-left: 4px;
 }
