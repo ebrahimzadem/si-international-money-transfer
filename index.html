@@ -1,37 +1,376 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-    <title>Si Crypto</title>
-    <!-- The `react-native-web` recommended style reset: https://necolas.github.io/react-native-web/docs/setup/#root-element -->
-    <style id="expo-reset">
-      /* These styles make the body full-height */
-      html,
-      body {
-        height: 100%;
-      }
-      /* These styles disable body scrolling if you are using <ScrollView> */
-      body {
-        overflow: hidden;
-      }
-      /* These styles make the root element full-height */
-      #root {
-        display: flex;
-        height: 100%;
-        flex: 1;
-      }
-    </style>
-  <link rel="icon" href="/favicon.ico" /></head>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Si — International Money Transfer</title>
+  <meta name="description" content="Send money internationally with Si. Fast, secure, and affordable crypto transfers worldwide. BTC, ETH, USDC — zero hidden fees.">
+  <meta name="theme-color" content="#1B6B3A">
 
-  <body>
-    <!-- Use static rendering with Expo Router to support running without JavaScript. -->
-    <noscript>
-      You need to enable JavaScript to run this app.
-    </noscript>
-    <!-- The root element for your Expo app. -->
-    <div id="root"></div>
-  <script src="/_expo/static/js/web/index-7438399cb4c14c35558d50a536da0c2c.js" defer></script>
+  <!-- Open Graph -->
+  <meta property="og:title" content="Si — International Money Transfer">
+  <meta property="og:description" content="Send money internationally. Fast, secure, affordable crypto transfers worldwide.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://sisendsmoney.com">
+  <meta property="og:image" content="https://sisendsmoney.com/images/logo.png">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="images/star.png">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- ─── NAVBAR ──────────────────────────────────────────────────────── -->
+  <nav class="navbar" id="navbar">
+    <div class="container navbar__inner">
+      <a href="#" class="navbar__logo">
+        <img src="images/logo.png" alt="Si International Money Transfer" class="navbar__logo-img">
+      </a>
+
+      <ul class="navbar__links" id="navLinks">
+        <li><a href="#features" class="navbar__link">Features</a></li>
+        <li><a href="#how-it-works" class="navbar__link">How It Works</a></li>
+        <li><a href="#security" class="navbar__link">Security</a></li>
+        <li><a href="#" class="btn btn--primary btn--sm navbar__cta">Get Started</a></li>
+      </ul>
+
+      <button class="navbar__hamburger" id="hamburger" aria-label="Toggle menu">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ─── HERO ────────────────────────────────────────────────────────── -->
+  <section class="hero">
+    <div class="container hero__inner">
+      <div class="hero__content">
+        <div class="hero__badge">
+          <img src="images/star.png" alt="" class="hero__badge-star">
+          <span>Trusted by users worldwide</span>
+        </div>
+        <h1 class="hero__title">
+          Send Money<br>
+          Internationally.<br>
+          <span class="hero__title-accent">Instantly.</span>
+        </h1>
+        <p class="hero__subtitle">
+          Si makes international money transfers fast, secure, and affordable.
+          Send crypto globally with zero hidden fees.
+        </p>
+        <div class="hero__actions">
+          <a href="#" class="btn btn--primary btn--lg">Get Started</a>
+          <a href="#how-it-works" class="btn btn--outline btn--lg">Learn More</a>
+        </div>
+      </div>
+      <div class="hero__visual">
+        <div class="hero__phone">
+          <div class="hero__phone-frame">
+            <div class="hero__phone-screen">
+              <div class="phone-ui">
+                <div class="phone-ui__header">
+                  <span class="phone-ui__greeting">Welcome back</span>
+                  <span class="phone-ui__balance-label">Total Balance</span>
+                  <span class="phone-ui__balance">$10,236.90</span>
+                </div>
+                <div class="phone-ui__actions">
+                  <div class="phone-ui__action">
+                    <div class="phone-ui__action-icon phone-ui__action-icon--send">&#8593;</div>
+                    <span>Send</span>
+                  </div>
+                  <div class="phone-ui__action">
+                    <div class="phone-ui__action-icon phone-ui__action-icon--receive">&#8595;</div>
+                    <span>Receive</span>
+                  </div>
+                  <div class="phone-ui__action">
+                    <div class="phone-ui__action-icon phone-ui__action-icon--swap">&#8645;</div>
+                    <span>Swap</span>
+                  </div>
+                </div>
+                <div class="phone-ui__assets">
+                  <div class="phone-ui__asset">
+                    <div class="phone-ui__asset-icon" style="background:#F7931A;">B</div>
+                    <div class="phone-ui__asset-info">
+                      <span class="phone-ui__asset-name">Bitcoin</span>
+                      <span class="phone-ui__asset-ticker">BTC</span>
+                    </div>
+                    <div class="phone-ui__asset-value">
+                      <span class="phone-ui__asset-amount">$4,891.23</span>
+                      <span class="phone-ui__asset-change phone-ui__asset-change--up">+2.4%</span>
+                    </div>
+                  </div>
+                  <div class="phone-ui__asset">
+                    <div class="phone-ui__asset-icon" style="background:#627EEA;">E</div>
+                    <div class="phone-ui__asset-info">
+                      <span class="phone-ui__asset-name">Ethereum</span>
+                      <span class="phone-ui__asset-ticker">ETH</span>
+                    </div>
+                    <div class="phone-ui__asset-value">
+                      <span class="phone-ui__asset-amount">$3,345.67</span>
+                      <span class="phone-ui__asset-change phone-ui__asset-change--up">+1.8%</span>
+                    </div>
+                  </div>
+                  <div class="phone-ui__asset">
+                    <div class="phone-ui__asset-icon" style="background:#2775CA;">U</div>
+                    <div class="phone-ui__asset-info">
+                      <span class="phone-ui__asset-name">USD Coin</span>
+                      <span class="phone-ui__asset-ticker">USDC</span>
+                    </div>
+                    <div class="phone-ui__asset-value">
+                      <span class="phone-ui__asset-amount">$2,000.00</span>
+                      <span class="phone-ui__asset-change">0.0%</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <!-- Decorative stars -->
+        <img src="images/star.png" alt="" class="hero__star hero__star--1">
+        <img src="images/star.png" alt="" class="hero__star hero__star--2">
+        <img src="images/star.png" alt="" class="hero__star hero__star--3">
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── TRUST BAR ───────────────────────────────────────────────────── -->
+  <section class="trust-bar">
+    <div class="container trust-bar__inner">
+      <div class="trust-bar__item">
+        <img src="images/star.png" alt="" class="trust-bar__icon">
+        <span>Bank-grade security</span>
+      </div>
+      <div class="trust-bar__item">
+        <img src="images/star.png" alt="" class="trust-bar__icon">
+        <span>24/7 Support</span>
+      </div>
+      <div class="trust-bar__item">
+        <img src="images/star.png" alt="" class="trust-bar__icon">
+        <span>No hidden fees</span>
+      </div>
+      <div class="trust-bar__item">
+        <img src="images/star.png" alt="" class="trust-bar__icon">
+        <span>Instant transfers</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── HOW IT WORKS ────────────────────────────────────────────────── -->
+  <section class="how-it-works" id="how-it-works">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-header__label">Simple process</span>
+        <h2 class="section-header__title">How It Works</h2>
+        <p class="section-header__subtitle">Get started in three simple steps</p>
+      </div>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step__number">
+            <span>1</span>
+            <img src="images/star.png" alt="" class="step__star">
+          </div>
+          <h3 class="step__title">Create Account</h3>
+          <p class="step__desc">Sign up in seconds with your email or Google account. No paperwork needed.</p>
+        </div>
+        <div class="step__connector"></div>
+        <div class="step">
+          <div class="step__number">
+            <span>2</span>
+            <img src="images/star.png" alt="" class="step__star">
+          </div>
+          <h3 class="step__title">Add Crypto</h3>
+          <p class="step__desc">Deposit BTC, ETH, or USDC to your personal wallet. Buy with a card or transfer from any exchange.</p>
+        </div>
+        <div class="step__connector"></div>
+        <div class="step">
+          <div class="step__number">
+            <span>3</span>
+            <img src="images/star.png" alt="" class="step__star">
+          </div>
+          <h3 class="step__title">Send Anywhere</h3>
+          <p class="step__desc">Transfer to any wallet worldwide instantly. Track your transaction in real time.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── FEATURES ────────────────────────────────────────────────────── -->
+  <section class="features" id="features">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-header__label">Why Si</span>
+        <h2 class="section-header__title">Built for Global Transfers</h2>
+        <p class="section-header__subtitle">Everything you need to send money across borders</p>
+      </div>
+
+      <div class="features__grid">
+        <div class="feature-card">
+          <div class="feature-card__icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          </div>
+          <h3 class="feature-card__title">Multi-Currency Support</h3>
+          <p class="feature-card__desc">BTC, ETH, USDC, and USDT. Hold, send, and receive multiple cryptocurrencies in one wallet.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-card__icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          </div>
+          <h3 class="feature-card__title">Real-Time Prices</h3>
+          <p class="feature-card__desc">Live market data and interactive price charts. Always know the value of your portfolio.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-card__icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          </div>
+          <h3 class="feature-card__title">Low Fees</h3>
+          <p class="feature-card__desc">Transparent pricing with no hidden costs. Pay only the network fee — nothing extra.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-card__icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          </div>
+          <h3 class="feature-card__title">Instant Transfers</h3>
+          <p class="feature-card__desc">Send to any wallet address globally. Transactions confirmed on-chain in minutes, not days.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-card__icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </div>
+          <h3 class="feature-card__title">Bank-Grade Security</h3>
+          <p class="feature-card__desc">Enterprise-level encryption, two-factor authentication, and cold storage protection.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-card__icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+          </div>
+          <h3 class="feature-card__title">Easy Swaps</h3>
+          <p class="feature-card__desc">Convert between cryptocurrencies instantly. Swap BTC to ETH or USDC with one tap.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── SECURITY ────────────────────────────────────────────────────── -->
+  <section class="security" id="security">
+    <div class="container security__inner">
+      <div class="security__content">
+        <span class="section-header__label section-header__label--light">Your money is safe</span>
+        <h2 class="security__title">Security You Can Trust</h2>
+        <p class="security__subtitle">
+          We use the same security standards as major financial institutions to protect your assets.
+        </p>
+        <ul class="security__list">
+          <li class="security__item">
+            <img src="images/star.png" alt="" class="security__star">
+            <div>
+              <strong>256-bit AES Encryption</strong>
+              <span>All data encrypted in transit and at rest</span>
+            </div>
+          </li>
+          <li class="security__item">
+            <img src="images/star.png" alt="" class="security__star">
+            <div>
+              <strong>Two-Factor Authentication</strong>
+              <span>Email verification on every login</span>
+            </div>
+          </li>
+          <li class="security__item">
+            <img src="images/star.png" alt="" class="security__star">
+            <div>
+              <strong>Cold Storage Protection</strong>
+              <span>Majority of funds stored offline</span>
+            </div>
+          </li>
+          <li class="security__item">
+            <img src="images/star.png" alt="" class="security__star">
+            <div>
+              <strong>Real-Time Monitoring</strong>
+              <span>24/7 automated threat detection</span>
+            </div>
+          </li>
+        </ul>
+      </div>
+      <div class="security__visual">
+        <div class="security__shield">
+          <svg width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+          <img src="images/star.png" alt="" class="security__shield-star">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── CTA ─────────────────────────────────────────────────────────── -->
+  <section class="cta">
+    <div class="container cta__inner">
+      <img src="images/star.png" alt="" class="cta__star cta__star--1">
+      <img src="images/star.png" alt="" class="cta__star cta__star--2">
+      <h2 class="cta__title">Ready to send money globally?</h2>
+      <p class="cta__subtitle">Join thousands of users who trust Si for international transfers.</p>
+      <a href="#" class="btn btn--white btn--lg">Get Started — It's Free</a>
+    </div>
+  </section>
+
+  <!-- ─── FOOTER ──────────────────────────────────────────────────────── -->
+  <footer class="footer">
+    <div class="container footer__inner">
+      <div class="footer__top">
+        <div class="footer__brand">
+          <img src="images/logo-white.png" alt="Si" class="footer__logo">
+          <p class="footer__tagline">International money transfers,<br>made simple.</p>
+        </div>
+
+        <div class="footer__columns">
+          <div class="footer__column">
+            <h4 class="footer__heading">Product</h4>
+            <ul class="footer__list">
+              <li><a href="#features">Features</a></li>
+              <li><a href="#security">Security</a></li>
+              <li><a href="#how-it-works">How It Works</a></li>
+              <li><a href="#">Pricing</a></li>
+            </ul>
+          </div>
+          <div class="footer__column">
+            <h4 class="footer__heading">Company</h4>
+            <ul class="footer__list">
+              <li><a href="#">About</a></li>
+              <li><a href="#">Careers</a></li>
+              <li><a href="#">Blog</a></li>
+              <li><a href="#">Contact</a></li>
+            </ul>
+          </div>
+          <div class="footer__column">
+            <h4 class="footer__heading">Legal</h4>
+            <ul class="footer__list">
+              <li><a href="#">Privacy Policy</a></li>
+              <li><a href="#">Terms of Service</a></li>
+              <li><a href="#">Cookie Policy</a></li>
+              <li><a href="#">Licenses</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer__bottom">
+        <p>&copy; 2025 Si International Money Transfer. All rights reserved.</p>
+      </div>
+    </div>
+  </footer>
+
+  <script src="js/main.js"></script>
 </body>
 </html>
