@@ -13,13 +13,14 @@ async function bootstrap() {
   app.use(helmet());
 
   // CORS: Allow frontend to connect
+  const corsOrigin = process.env.CORS_ORIGIN;
   app.enableCors({
-    origin: process.env.CORS_ORIGIN?.split(',') || [
+    origin: corsOrigin === '*' ? '*' : (corsOrigin?.split(',') || [
       'http://localhost:8081',
       'exp://localhost:8081',
       'https://siremit.com',
       'https://www.siremit.com',
-    ],
+    ]),
     credentials: false,
   });
 
