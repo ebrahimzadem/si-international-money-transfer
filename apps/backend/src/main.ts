@@ -19,8 +19,6 @@ async function bootstrap() {
       'exp://localhost:8081',
       'https://siremit.com',
       'https://www.siremit.com',
-      'https://zar724.com',
-      'https://www.zar724.com',
     ],
     credentials: true,
   });
