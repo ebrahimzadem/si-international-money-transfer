@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,9 +13,15 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { useDispatch } from 'react-redux';
+import * as Google from 'expo-auth-session/providers/google';
+import * as WebBrowser from 'expo-web-browser';
 import { setUser } from '../../store/authSlice';
 import api from '../../services/api';
 import { DSButton, DSInput, colors, typography, spacing, radii, shadows } from '../../design-system';
+
+WebBrowser.maybeCompleteAuthSession();
+
+const GOOGLE_WEB_CLIENT_ID = '168685371164-20j32pshd44p42rrn03fgv1ptdhfl6vp.apps.googleusercontent.com';
 
 type Step = 'form' | 'email-otp' | 'phone-otp';
 
@@ -36,6 +42,36 @@ export default function RegisterScreen({ navigation }: any) {
   const [showConfirm, setShowConfirm] = useState(false);
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
+
+  const [_request, response, promptAsync] = Google.useAuthRequest({
+    webClientId: GOOGLE_WEB_CLIENT_ID,
+  });
+
+  useEffect(() => {
+    if (response?.type === 'success') {
+      const idToken = response.authentication?.idToken || response.params?.id_token;
+      if (idToken) {
+        handleGoogleToken(idToken);
+      } else {
+        showError('Google sign-up failed: no token received');
+      }
+    } else if (response?.type === 'error') {
+      showError('Google sign-up was cancelled');
+    }
+  }, [response]);
+
+  const handleGoogleToken = async (idToken: string) => {
+    setLoading(true);
+    setError('');
+    try {
+      const result = await api.googleLogin(idToken);
+      dispatch(setUser(result.user));
+    } catch {
+      showError('Google sign-up failed');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const showError = (msg: string) => {
     setError(msg);
@@ -124,7 +160,7 @@ export default function RegisterScreen({ navigation }: any) {
   };
 
   const handleGoogleSignUp = () => {
-    showError('Google Sign-Up coming soon');
+    promptAsync();
   };
 
   // ─── FORM STEP ───────────────────────────────────────────────────────

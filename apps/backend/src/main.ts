@@ -20,7 +20,7 @@ async function bootstrap() {
       'https://siremit.com',
       'https://www.siremit.com',
     ],
-    credentials: true,
+    credentials: false,
   });
 
   // Rate Limiting: Prevent brute force attacks

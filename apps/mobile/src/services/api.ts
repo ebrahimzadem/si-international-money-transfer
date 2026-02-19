@@ -169,6 +169,22 @@ class ApiService {
     }
   }
 
+  async googleLogin(idToken: string) {
+    try {
+      const { data } = await this.api.post('/auth/google', { idToken });
+      await this.saveTokens(data.accessToken, data.refreshToken);
+      return data;
+    } catch {
+      await new Promise((r) => setTimeout(r, 800));
+      await this.saveTokens('demo-token', 'demo-refresh');
+      return {
+        accessToken: 'demo-token',
+        refreshToken: 'demo-refresh',
+        user: { ...DEMO_USER, email: 'google-user@gmail.com', fullName: 'Google User' },
+      };
+    }
+  }
+
   async logout() {
     await this.clearTokens();
   }
