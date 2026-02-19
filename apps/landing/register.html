@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Log In — Si</title>
-  <meta name="description" content="Log in to your Si account">
+  <title>Sign Up — Si</title>
+  <meta name="description" content="Create your Si account">
   <meta name="theme-color" content="#1B6B3A">
 
   <!-- Fonts -->
@@ -12,8 +12,10 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" href="images/star.png">
+  <!-- Favicon & App Icons -->
+  <link rel="icon" type="image/png" sizes="32x32" href="images/star.png">
+  <link rel="apple-touch-icon" href="images/star.png">
+  <link rel="manifest" href="manifest.json">
 
   <!-- Google Sign-In -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -210,15 +212,15 @@
         <img src="images/logo.png" alt="Si">
       </div>
 
-      <h1 class="auth-card__title">Welcome back</h1>
-      <p class="auth-card__subtitle">Log in to your Si account</p>
+      <h1 class="auth-card__title">Create your account</h1>
+      <p class="auth-card__subtitle">Start sending money globally today</p>
 
       <div id="error" class="form-error"></div>
       <div id="success" class="form-success"></div>
 
       <div id="g_id_onload"
            data-client_id="168685371164-20j32pshd44p42rrn03fgv1ptdhfl6vp.apps.googleusercontent.com"
-           data-callback="handleGoogleSignIn"
+           data-callback="handleGoogleSignUp"
            data-auto_prompt="false">
       </div>
       <div class="g_id_signin"
@@ -233,7 +235,12 @@
 
       <div class="divider">or</div>
 
-      <form id="loginForm">
+      <form id="registerForm">
+        <div class="form-group">
+          <label for="fullName" class="form-label">Full Name</label>
+          <input type="text" id="fullName" class="form-input" placeholder="John Doe" required>
+        </div>
+
         <div class="form-group">
           <label for="email" class="form-label">Email</label>
           <input type="email" id="email" class="form-input" placeholder="you@example.com" required>
@@ -241,21 +248,21 @@
 
         <div class="form-group">
           <label for="password" class="form-label">Password</label>
-          <input type="password" id="password" class="form-input" placeholder="••••••••" required>
+          <input type="password" id="password" class="form-input" placeholder="••••••••" required minlength="6">
         </div>
 
-        <button type="submit" class="btn-submit" id="submitBtn">Log In</button>
+        <button type="submit" class="btn-submit" id="submitBtn">Create Account</button>
       </form>
 
       <div class="auth-footer">
-        Don't have an account? <a href="/register">Sign up</a>
+        Already have an account? <a href="/login">Log in</a>
       </div>
     </div>
   </div>
 
   <script>
     const API_URL = 'https://si-app.onrender.com';
-    const form = document.getElementById('loginForm');
+    const form = document.getElementById('registerForm');
     const submitBtn = document.getElementById('submitBtn');
     const errorDiv = document.getElementById('error');
     const successDiv = document.getElementById('success');
@@ -281,50 +288,45 @@
       e.preventDefault();
       hideMessages();
 
+      const fullName = document.getElementById('fullName').value;
       const email = document.getElementById('email').value;
       const password = document.getElementById('password').value;
 
       submitBtn.disabled = true;
-      submitBtn.textContent = 'Logging in...';
+      submitBtn.textContent = 'Creating account...';
 
       try {
-        const response = await fetch(API_URL + '/auth/login', {
+        const response = await fetch(API_URL + '/auth/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password })
+          body: JSON.stringify({ fullName, email, password })
         });
 
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(data.message || 'Login failed');
+          throw new Error(data.message || 'Registration failed');
         }
 
-        // Store tokens
-        localStorage.setItem('accessToken', data.accessToken);
-        localStorage.setItem('refreshToken', data.refreshToken);
-        localStorage.setItem('user', JSON.stringify(data.user));
+        showSuccess('Account created! Redirecting to login...');
 
-        showSuccess('Login successful! Redirecting...');
-
-        // Redirect to app (you can change this URL)
         setTimeout(() => {
-          window.location.href = '/app';
-        }, 1000);
+          window.location.href = '/login';
+        }, 1500);
 
       } catch (error) {
-        showError(error.message || 'Failed to log in. Please try again.');
+        showError(error.message || 'Failed to create account. Please try again.');
       } finally {
         submitBtn.disabled = false;
-        submitBtn.textContent = 'Log In';
+        submitBtn.textContent = 'Create Account';
       }
     });
 
-    // Google Sign-In callback
-    window.handleGoogleSignIn = async (response) => {
+    // Google Sign-Up callback
+    window.handleGoogleSignUp = async (response) => {
       hideMessages();
       submitBtn.disabled = true;
-      submitBtn.textContent = 'Logging in with Google...';
+      submitBtn.textContent = 'Creating account with Google...';
 
       try {
         const result = await fetch(API_URL + '/auth/google', {
@@ -336,7 +338,7 @@
         const data = await result.json();
 
         if (!result.ok) {
-          throw new Error(data.message || 'Google sign-in failed');
+          throw new Error(data.message || 'Google sign-up failed');
         }
 
         // Store tokens
@@ -344,17 +346,17 @@
         localStorage.setItem('refreshToken', data.refreshToken);
         localStorage.setItem('user', JSON.stringify(data.user));
 
-        showSuccess('Login successful! Redirecting...');
+        showSuccess('Account created! Redirecting...');
 
         setTimeout(() => {
           window.location.href = '/app';
         }, 1000);
 
       } catch (error) {
-        showError(error.message || 'Google sign-in failed. Please try again.');
+        showError(error.message || 'Google sign-up failed. Please try again.');
       } finally {
         submitBtn.disabled = false;
-        submitBtn.textContent = 'Log In';
+        submitBtn.textContent = 'Create Account';
       }
     };
   </script>
