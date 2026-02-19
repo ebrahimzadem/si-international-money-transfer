@@ -1,0 +1,23 @@
+{
+  "name": "Si - International Money Transfer",
+  "short_name": "Si",
+  "description": "Send money internationally with Si. Fast, secure, and affordable crypto transfers worldwide.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#FFFFFF",
+  "theme_color": "#1B6B3A",
+  "icons": [
+    {
+      "src": "/images/star.png",
+      "sizes": "256x256",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/images/star.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
