@@ -17,8 +17,10 @@ async function bootstrap() {
     origin: process.env.CORS_ORIGIN?.split(',') || [
       'http://localhost:8081',
       'exp://localhost:8081',
-      'https://sisendsmoney.com',
-      'https://www.sisendsmoney.com',
+      'https://siremit.com',
+      'https://www.siremit.com',
+      'https://zar724.com',
+      'https://www.zar724.com',
     ],
     credentials: true,
   });
