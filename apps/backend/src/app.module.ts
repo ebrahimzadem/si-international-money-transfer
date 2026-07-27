@@ -8,6 +8,7 @@ import { UsersModule } from './users/users.module';
 import { WalletsModule } from './wallets/wallets.module';
 import { TransactionsModule } from './transactions/transactions.module';
 import { OtpModule } from './otp/otp.module';
+import { PrugModule } from './prug/prug.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { OtpModule } from './otp/otp.module';
     WalletsModule,
     TransactionsModule,
     OtpModule,
+    PrugModule,
   ],
   controllers: [AppController],
   providers: [AppService],

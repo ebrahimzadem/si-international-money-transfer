@@ -1,5 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
@@ -7,7 +8,10 @@ import { AllExceptionsFilter } from './common/filters';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  // Body size: Prug carpet photos are uploaded as base64 JSON (up to ~9 MB each)
+  app.useBodyParser('json', { limit: process.env.MAX_REQUEST_SIZE || '15mb' });
 
   // Security: Helmet - sets various HTTP headers for security
   app.use(helmet());
