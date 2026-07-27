@@ -26,7 +26,36 @@ Analysis is a fixed pipeline, not a free-running loop. Deterministic checks run 
 
 ---
 
-## 1. Guided capture
+## 1. Guided capture — in-app only
+
+**Photos must be taken live in the Prug app. Gallery imports are refused.** The client cannot be trusted to promise this, so the server drives it:
+
+1. The owner opens a **capture session** for one carpet, declaring the device and its UTC offset. The session returns a nonce for device attestation.
+2. Before each frame the client requests a **single-use frame token**. The server records the instant it was issued.
+3. The photo must arrive with that token, and its EXIF capture time must fall between the token being issued and the upload arriving.
+
+A gallery photo fails at step 3 — it was taken before the token existed. A stripped photo has no capture time and cannot clear the check either.
+
+| Check | Refusal |
+|---|---|
+| `photo_without_capture_token` | Upload with no token at all |
+| `capture_outside_session_window` | Taken before the frame was requested — the gallery case |
+| `capture_time_unverifiable` | No usable EXIF timestamp, so the claim cannot be checked |
+| `capture_token_reused` | One token, one photo — spent even on a rejected upload, so the checks cannot be probed by retrying |
+| `capture_token_expired` / `capture_session_expired` | Frame tokens last 30 min, sessions 12 h |
+| `capture_token_wrong_shot` / `capture_token_foreign` | Token issued for another shot, carpet or account |
+
+Soft signals that raise risk without blocking: `capture_implausibly_fast` (under 1.5 s from token to upload), `capture_device_mismatch`, `device_not_attested`, and at analysis time `unverified_capture_photos` and `fragmented_capture`.
+
+> **Time zones.** EXIF timestamps are local wall-clock with no zone. Prug uses the photo's own `OffsetTimeOriginal` when the camera wrote it, and otherwise the offset the session declared. Without either, the capture instant is unknowable and the photo is refused rather than assumed to be UTC.
+
+**Device attestation** (`DeviceAttestationService`) is what proves the caller is the real app on a real device rather than a script replaying the API. The nonce binding, verifier interface and fail-closed policy are implemented; the platform verifiers are not — Apple App Attest needs CBOR attestation parsing against Apple's root, and Play Integrity needs a Google service account. Register one via `attestation.register(verifier)`. Until then the service reports `unavailable` and `PRUG_ATTESTATION_MODE` decides whether that blocks a session. **It never reports success for a token nothing checked.**
+
+> **What this cannot do:** prove the pixels came from the camera sensor. A rooted device running a virtual-camera framework can still feed a stored image into the camera pipeline. Attestation raises that cost; nothing server-side closes it completely.
+
+`PRUG_CAPTURE_MODE`: `strict` (default, refuse), `lenient` (record as findings), `off` (dev only).
+
+### The shot list
 
 Ten required frames, up to ten optional ones (`GET /prug/capture-plan` returns the full plan with Persian and English guidance):
 
@@ -41,7 +70,7 @@ Ten required frames, up to ten optional ones (`GET /prug/capture-plan` returns t
 
 Optional: `edge_selvedge`, `signature`, `field_detail`, `defect` (up to 6), `label`, `measurement`.
 
-Photos are uploaded one at a time as base64 JPEG or PNG. Each upload returns its forensic findings immediately, so a client can prompt for a retake while the owner is still standing over the carpet.
+Photos are uploaded one at a time as base64 JPEG or PNG, each with its frame token. Every upload returns its forensic findings immediately, so a client can prompt for a retake while the owner is still standing over the carpet.
 
 **HEIC and WebP are rejected.** They cannot be decoded for fingerprinting without a native dependency, and a photo that cannot be fingerprinted cannot be checked for duplicates. Convert to JPEG client-side. Upload at **2576 px on the long edge** — that is the model's high-resolution limit, and larger files are stored but excluded from the visual review.
 
@@ -183,7 +212,11 @@ All owner routes require a bearer token.
 | `GET` | `/prug/carpets` | List own carpets |
 | `GET` | `/prug/carpets/:id` | Carpet, photos, ownership, latest report, token |
 | `PATCH` | `/prug/carpets/:id/profile` | Visibility, story, cover photo |
-| `POST` | `/prug/carpets/:id/photos` | Upload one photo; returns findings + coverage |
+| `POST` | `/prug/carpets/:id/capture-sessions` | Open a live capture session |
+| `GET` | `/prug/capture-sessions/:id` | Session state |
+| `POST` | `/prug/capture-sessions/:id/frames` | Single-use token for the next frame |
+| `POST` | `/prug/capture-sessions/:id/close` | Close the session |
+| `POST` | `/prug/carpets/:id/photos` | Upload one photo (needs a frame token); returns findings + coverage |
 | `GET` | `/prug/carpets/:id/photos` | List photos with their findings |
 | `GET` | `/prug/carpets/:id/photos/:photoId/raw` | Photo bytes (owner) |
 | `DELETE` | `/prug/carpets/:id/photos/:photoId` | Remove a photo (before certification) |
@@ -213,19 +246,37 @@ curl -X POST $API/prug/carpets -H "Authorization: Bearer $TOKEN" \
   -H 'Content-Type: application/json' \
   -d '{"title":"Tabriz medallion","declared":{"originRegion":"Tabriz","materials":["wool","cotton"],"lengthCm":300,"widthCm":200}}'
 
-# 2. Upload each frame
+# 2. Open a capture session on the device that will take the photos
+SESSION=$(curl -sX POST $API/prug/carpets/$ID/capture-sessions -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"platform":"ios","deviceId":"install-abc123","deviceModel":"iPhone15,3","utcOffsetMinutes":210}')
+
+# 3. Per frame: token first, then shutter, then upload
+FRAME=$(curl -sX POST $API/prug/capture-sessions/$SID/frames -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' -d '{"shotType":"full_front"}')
+
 curl -X POST $API/prug/carpets/$ID/photos -H "Authorization: Bearer $TOKEN" \
   -H 'Content-Type: application/json' \
-  -d "{\"shotType\":\"full_front\",\"data\":\"$(base64 -w0 front.jpg)\"}"
+  -d "{\"shotType\":\"full_front\",\"frameToken\":\"$FRAME_TOKEN\",\"data\":\"$(base64 -w0 front.jpg)\"}"
 
-# 3. Run the agent once the set is complete
+# 4. Run the agent once the set is complete
 curl -X POST $API/prug/carpets/$ID/analyze -H "Authorization: Bearer $TOKEN"
 
-# 4. Anyone can check the result
+# 5. Anyone can check the result
 curl $API/prug/verify/PRUG-7QK3M9WX-482
 ```
 
 ---
+
+## Client requirements
+
+The server refuses anything that did not come from a live capture, but the app has to hold up its side:
+
+- **Use the camera directly, never an image picker.** On React Native / Expo that means `expo-camera` or `react-native-vision-camera` — not `expo-image-picker`.
+- **Request the frame token immediately before the shutter**, one per photo. Do not pre-fetch a batch of tokens at the start of the session; the elapsed-time check treats a stale token as suspicious and an unused one expires in 30 minutes.
+- **Preserve EXIF.** Many RN camera wrappers strip metadata or re-encode on save — a photo with no `DateTimeOriginal` is refused in strict mode. Verify on both platforms with a real device before shipping.
+- **Send the device's UTC offset** when opening the session, and export JPEG at 2576 px on the long edge.
+- **Queue uploads offline.** Carpet-weaving regions have poor connectivity; the 12-hour session window is deliberately generous so a set can finish uploading later, but frame tokens still expire in 30 minutes, so request each one at the moment of capture even when offline queuing.
 
 ## Configuration
 
@@ -237,6 +288,8 @@ curl $API/prug/verify/PRUG-7QK3M9WX-482
 | `PRUG_AI_FALLBACKS` | `true` | Server-side refusal fallbacks |
 | `PRUG_STORAGE_DIR` | `./storage/prug` | Photo storage root |
 | `PRUG_KYC_REQUIRED` | `true` | Development escape hatch only |
+| `PRUG_CAPTURE_MODE` | `strict` | `strict` refuses gallery photos, `lenient` records findings, `off` disables |
+| `PRUG_ATTESTATION_MODE` | `optional` | `required` blocks sessions without a verified device |
 | `PRUG_PUBLIC_URL` | `https://prug.app` | Base URL in token metadata |
 | `PRUG_ANCHOR_PRIVATE_KEY` | — | Without it, tokenisation returns unsigned plans |
 | `PRUG_NFT_CONTRACT` | — | Set to mint ERC-721 instead of anchoring |

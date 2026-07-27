@@ -22,6 +22,55 @@ export type ShotType =
   | 'label'
   | 'measurement';
 
+/** Outcome of checking a device attestation token. */
+export type AttestationStatus =
+  | 'verified'
+  | 'failed'
+  | 'missing'
+  | 'unavailable'
+  | 'unsupported'
+  | 'skipped'
+  | 'error';
+
+/**
+ * One carpet's live photography session on one device. Photos are only
+ * accepted against a frame token issued inside an open session.
+ */
+export interface CaptureSession {
+  id: string;
+  carpetId: string;
+  userId: string;
+  /** Bound into the device attestation to stop replay across sessions. */
+  nonce: string;
+  platform: 'ios' | 'android' | 'web';
+  deviceId: string;
+  deviceModel: string | null;
+  appVersion: string | null;
+  /** Device UTC offset, used to interpret EXIF local timestamps. */
+  utcOffsetMinutes: number;
+  attestationStatus: AttestationStatus;
+  attestationProvider: string;
+  status: 'open' | 'closed' | 'expired' | 'superseded';
+  startedAt: Date;
+  expiresAt: Date;
+  closedAt: Date | null;
+}
+
+/** A single-use permission to upload one photo of one shot type. */
+export interface CaptureFrame {
+  id: string;
+  sessionId: string;
+  shotType: ShotType;
+  token: string;
+  issuedAt: Date;
+  expiresAt: Date;
+  consumedAt: Date | null;
+  photoId: string | null;
+  /** Milliseconds between issuing the token and the photo arriving. */
+  latencyMs: number | null;
+  captureVerified: boolean;
+}
+
 export type CarpetStatus =
   | 'draft'
   | 'analyzing'
@@ -100,6 +149,10 @@ export interface PrugPhoto {
   phash: string | null;
   metadata: PhotoMetadataSummary;
   findings: ForensicFinding[];
+  /** Session this photo was taken in; null only in non-strict capture modes. */
+  captureSessionId: string | null;
+  /** True when the photo provably came from a live in-app capture. */
+  captureVerified: boolean;
   createdAt: Date;
 }
 

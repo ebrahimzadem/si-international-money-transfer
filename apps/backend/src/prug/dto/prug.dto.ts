@@ -119,9 +119,58 @@ export class UploadPhotoDto {
   @MaxLength(MAX_BASE64_LENGTH)
   data: string;
 
+  /**
+   * Single-use token issued for this frame moments before the shutter.
+   * Required unless the deployment runs with PRUG_CAPTURE_MODE=off.
+   */
+  @IsOptional()
+  @IsString()
+  @Length(64, 64)
+  frameToken?: string;
+
   @IsOptional()
   @IsBoolean()
   isPublic?: boolean;
+}
+
+export class OpenCaptureSessionDto {
+  @IsIn(['ios', 'android', 'web'])
+  platform: 'ios' | 'android' | 'web';
+
+  /** Stable per-install identifier, used to spot a set built on several devices. */
+  @IsString()
+  @Length(8, 128)
+  deviceId: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  deviceModel?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  appVersion?: string;
+
+  /**
+   * The device's UTC offset in minutes. EXIF timestamps are local wall-clock
+   * with no zone, so without this a capture time cannot be checked.
+   */
+  @IsInt()
+  @Min(-840)
+  @Max(840)
+  utcOffsetMinutes: number;
+
+  /** Apple App Attest or Play Integrity token, bound to the session nonce. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(20000)
+  attestationToken?: string;
+}
+
+export class IssueFrameTokenDto {
+  @IsIn(SHOT_TYPES)
+  shotType: ShotType;
 }
 
 export class UpdateProfileDto {

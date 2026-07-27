@@ -43,6 +43,7 @@ import { PhotoStorageService } from './storage/photo-storage.service';
 import { PrugKycService } from './kyc/prug-kyc.service';
 import { OwnershipService } from './ownership/ownership.service';
 import { TokenizationService } from './tokenization/tokenization.service';
+import { CaptureSessionService } from './capture/capture-session.service';
 import {
   MAX_PHOTOS,
   SHOT_SPECS,
@@ -89,6 +90,7 @@ export class PrugService {
     private readonly kyc: PrugKycService,
     private readonly ownership: OwnershipService,
     private readonly tokenization: TokenizationService,
+    private readonly captureSessions: CaptureSessionService,
   ) {}
 
   // ==========================================================================
@@ -191,7 +193,12 @@ export class PrugService {
   async addPhoto(
     userId: string,
     carpetId: string,
-    input: { shotType: ShotType; data: Buffer; isPublic?: boolean },
+    input: {
+      shotType: ShotType;
+      data: Buffer;
+      isPublic?: boolean;
+      frameToken?: string;
+    },
   ): Promise<AddPhotoResult> {
     const carpet = await this.getOwnedCarpet(userId, carpetId);
     if (carpet.certificateNumber) {
@@ -220,6 +227,25 @@ export class PrugService {
       );
     }
 
+    // The photo must come from a live in-app capture, not the gallery.
+    const capture = await this.captureSessions.consumeFrame({
+      carpetId,
+      userId,
+      shotType: input.shotType,
+      frameToken: input.frameToken,
+      inspection,
+    });
+
+    if (!capture.accepted) {
+      throw new BadRequestException({
+        message: capture.reason,
+        messageFa: capture.reasonFa,
+        code: capture.findings[0]?.code ?? 'capture_rejected',
+        captureMode: this.captureSessions.captureMode,
+      });
+    }
+    inspection.findings.push(...capture.findings);
+
     const extension = inspection.metadata.format === 'png' ? 'png' : 'jpg';
     const storageKey = await this.storage.put(
       carpetId,
@@ -245,7 +271,22 @@ export class PrugService {
       metadata: inspection.metadata,
       findings: inspection.findings,
       isPublic: input.isPublic ?? true,
+      captureSessionId: null,
+      captureVerified: capture.captureVerified,
     });
+
+    if (input.frameToken) {
+      const sessionId = await this.captureSessions.attachPhoto(
+        input.frameToken,
+        photo.id,
+        capture.latencyMs,
+        capture.captureVerified,
+      );
+      if (sessionId) {
+        await this.repository.setPhotoCaptureSession(photo.id, sessionId);
+        photo.captureSessionId = sessionId;
+      }
+    }
 
     const shots = [...existing.map((p) => p.shotType), input.shotType];
     const retakeRecommended = inspection.findings.some(
@@ -352,6 +393,7 @@ export class PrugService {
       );
     }
     findings.push(...this.forensics.crossPhotoFindings(photos));
+    findings.push(...this.captureIntegrityFindings(photos));
 
     const registry = await this.forensics.findRegistryMatches(
       photos,
@@ -518,6 +560,49 @@ export class PrugService {
     };
 
     return { refs, load };
+  }
+
+  /**
+   * Capture-integrity checks on the finished set.
+   *
+   * Each photo was already validated against its own frame token; what only
+   * becomes visible across the whole set is whether the session was one sitting
+   * with the carpet, or a set stitched together from several devices.
+   */
+  private captureIntegrityFindings(photos: PrugPhoto[]): ForensicFinding[] {
+    const findings: ForensicFinding[] = [];
+    const unverified = photos.filter((photo) => !photo.captureVerified);
+
+    if (unverified.length) {
+      findings.push({
+        code: 'unverified_capture_photos',
+        severity: unverified.length === photos.length ? 'high' : 'medium',
+        source: 'metadata',
+        message: `${unverified.length} of ${photos.length} photos could not be shown to come from a live in-app capture (positions ${unverified.map((photo) => photo.position).join(', ')}).`,
+        messageFa: `${unverified.length} عکس از ${photos.length} عکس، اثبات نشد که در همان لحظه داخل اپلیکیشن گرفته شده باشد (شماره‌های ${unverified.map((photo) => photo.position).join('، ')}).`,
+        weight: unverified.length === photos.length ? 40 : 20,
+      });
+    }
+
+    const sessions = new Set(
+      photos
+        .map((photo) => photo.captureSessionId)
+        .filter((id): id is string => id !== null),
+    );
+
+    if (sessions.size > 3) {
+      findings.push({
+        code: 'fragmented_capture',
+        severity: 'medium',
+        source: 'metadata',
+        message: `The set was assembled across ${sessions.size} separate capture sessions.`,
+        messageFa: `این مجموعه در ${sessions.size} جلسه عکس‌برداری جداگانه جمع‌آوری شده است.`,
+        weight: 15,
+        details: { sessionCount: sessions.size },
+      });
+    }
+
+    return findings;
   }
 
   private coverageFindings(

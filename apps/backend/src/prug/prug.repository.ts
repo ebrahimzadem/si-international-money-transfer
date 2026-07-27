@@ -11,6 +11,8 @@ import { ConfigService } from '@nestjs/config';
 import { Pool, PoolClient } from 'pg';
 import {
   AcquisitionType,
+  CaptureFrame,
+  CaptureSession,
   CarpetIdentity,
   CarpetRecord,
   CarpetStatus,
@@ -65,7 +67,22 @@ const PHOTO_COLUMNS = `
   id, carpet_id as "carpetId", shot_type as "shotType", position,
   storage_key as "storageKey", mime_type as "mimeType", byte_size as "byteSize",
   width, height, sha256, dhash, phash, metadata, findings,
+  capture_session_id as "captureSessionId", capture_verified as "captureVerified",
   is_public as "isPublic", created_at as "createdAt"
+`;
+
+const CAPTURE_SESSION_COLUMNS = `
+  id, carpet_id as "carpetId", user_id as "userId", nonce, platform,
+  device_id as "deviceId", device_model as "deviceModel", app_version as "appVersion",
+  utc_offset_minutes as "utcOffsetMinutes", attestation_status as "attestationStatus",
+  attestation_provider as "attestationProvider", status,
+  started_at as "startedAt", expires_at as "expiresAt", closed_at as "closedAt"
+`;
+
+const CAPTURE_FRAME_COLUMNS = `
+  id, session_id as "sessionId", shot_type as "shotType", token,
+  issued_at as "issuedAt", expires_at as "expiresAt", consumed_at as "consumedAt",
+  photo_id as "photoId", latency_ms as "latencyMs", capture_verified as "captureVerified"
 `;
 
 interface RawCarpet {
@@ -278,8 +295,8 @@ export class PrugRepository implements OnModuleDestroy {
       `INSERT INTO prug_photos (
          carpet_id, shot_type, position, storage_key, mime_type, byte_size,
          width, height, sha256, dhash, phash, band0, band1, band2, band3,
-         metadata, findings, is_public
-       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16::jsonb,$17::jsonb,$18)
+         metadata, findings, is_public, capture_session_id, capture_verified
+       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16::jsonb,$17::jsonb,$18,$19,$20)
        RETURNING ${PHOTO_COLUMNS}`,
       [
         photo.carpetId,
@@ -300,6 +317,8 @@ export class PrugRepository implements OnModuleDestroy {
         JSON.stringify(photo.metadata),
         JSON.stringify(photo.findings),
         photo.isPublic,
+        photo.captureSessionId,
+        photo.captureVerified,
       ],
     );
     return result.rows[0];
@@ -327,6 +346,16 @@ export class PrugRepository implements OnModuleDestroy {
 
   async deletePhoto(photoId: string): Promise<void> {
     await this.pool.query('DELETE FROM prug_photos WHERE id = $1', [photoId]);
+  }
+
+  async setPhotoCaptureSession(
+    photoId: string,
+    sessionId: string,
+  ): Promise<void> {
+    await this.pool.query(
+      'UPDATE prug_photos SET capture_session_id = $2 WHERE id = $1',
+      [photoId, sessionId],
+    );
   }
 
   async setPhotoVisibility(photoId: string, isPublic: boolean): Promise<void> {
@@ -367,6 +396,129 @@ export class PrugRepository implements OnModuleDestroy {
       [excludeCarpetId, bands[0], bands[1], bands[2], bands[3], limit],
     );
     return result.rows;
+  }
+
+  // ==========================================================================
+  // CAPTURE SESSIONS
+  // ==========================================================================
+
+  async createCaptureSession(input: {
+    carpetId: string;
+    userId: string;
+    nonce: string;
+    platform: string;
+    deviceId: string;
+    deviceModel: string | null;
+    appVersion: string | null;
+    utcOffsetMinutes: number;
+    attestationStatus: string;
+    attestationProvider: string;
+    expiresAt: Date;
+  }): Promise<CaptureSession> {
+    const result = await this.pool.query<CaptureSession>(
+      `INSERT INTO prug_capture_sessions
+         (carpet_id, user_id, nonce, platform, device_id, device_model, app_version,
+          utc_offset_minutes, attestation_status, attestation_provider, expires_at)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+       RETURNING ${CAPTURE_SESSION_COLUMNS}`,
+      [
+        input.carpetId,
+        input.userId,
+        input.nonce,
+        input.platform,
+        input.deviceId,
+        input.deviceModel,
+        input.appVersion,
+        input.utcOffsetMinutes,
+        input.attestationStatus,
+        input.attestationProvider,
+        input.expiresAt,
+      ],
+    );
+    return result.rows[0];
+  }
+
+  async findCaptureSession(id: string): Promise<CaptureSession | null> {
+    const result = await this.pool.query<CaptureSession>(
+      `SELECT ${CAPTURE_SESSION_COLUMNS} FROM prug_capture_sessions WHERE id = $1`,
+      [id],
+    );
+    return result.rows[0] || null;
+  }
+
+  async listCaptureSessions(carpetId: string): Promise<CaptureSession[]> {
+    const result = await this.pool.query<CaptureSession>(
+      `SELECT ${CAPTURE_SESSION_COLUMNS} FROM prug_capture_sessions
+       WHERE carpet_id = $1 ORDER BY started_at DESC`,
+      [carpetId],
+    );
+    return result.rows;
+  }
+
+  async closeCaptureSession(
+    id: string,
+    status: 'closed' | 'expired' | 'superseded',
+  ): Promise<void> {
+    await this.pool.query(
+      `UPDATE prug_capture_sessions SET status = $2, closed_at = NOW() WHERE id = $1`,
+      [id, status],
+    );
+  }
+
+  async closeOpenCaptureSessions(
+    carpetId: string,
+    status: 'closed' | 'expired' | 'superseded',
+  ): Promise<void> {
+    await this.pool.query(
+      `UPDATE prug_capture_sessions SET status = $2, closed_at = NOW()
+       WHERE carpet_id = $1 AND status = 'open'`,
+      [carpetId, status],
+    );
+  }
+
+  async createCaptureFrame(input: {
+    sessionId: string;
+    shotType: string;
+    token: string;
+    expiresAt: Date;
+  }): Promise<CaptureFrame> {
+    const result = await this.pool.query<CaptureFrame>(
+      `INSERT INTO prug_capture_frames (session_id, shot_type, token, expires_at)
+       VALUES ($1,$2,$3,$4)
+       RETURNING ${CAPTURE_FRAME_COLUMNS}`,
+      [input.sessionId, input.shotType, input.token, input.expiresAt],
+    );
+    return result.rows[0];
+  }
+
+  async findCaptureFrameByToken(token: string): Promise<CaptureFrame | null> {
+    const result = await this.pool.query<CaptureFrame>(
+      `SELECT ${CAPTURE_FRAME_COLUMNS} FROM prug_capture_frames WHERE token = $1`,
+      [token],
+    );
+    return result.rows[0] || null;
+  }
+
+  /**
+   * Mark a frame token as spent. Consuming a token on a rejected upload too is
+   * deliberate: a token is one attempt, so a caller cannot probe the checks by
+   * retrying the same token with different files.
+   */
+  async consumeCaptureFrame(
+    id: string,
+    photoId: string | null,
+    latencyMs: number | null,
+    captureVerified: boolean,
+  ): Promise<void> {
+    await this.pool.query(
+      `UPDATE prug_capture_frames
+       SET consumed_at = COALESCE(consumed_at, NOW()),
+           photo_id = COALESCE($2, photo_id),
+           latency_ms = COALESCE($3, latency_ms),
+           capture_verified = $4
+       WHERE id = $1`,
+      [id, photoId, latencyMs, captureVerified],
+    );
   }
 
   // ==========================================================================

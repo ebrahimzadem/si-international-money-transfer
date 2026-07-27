@@ -53,6 +53,66 @@ CREATE TRIGGER update_prug_carpets_updated_at BEFORE UPDATE ON prug_carpets
 
 
 -- ============================================================================
+-- CAPTURE SESSIONS
+-- Photos must be taken live in the Prug app, not picked from a gallery. A
+-- session is one sitting with one carpet on one device; every photo must
+-- present a single-use frame token issued moments before the shutter.
+-- ============================================================================
+
+CREATE TABLE prug_capture_sessions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  carpet_id UUID NOT NULL REFERENCES prug_carpets(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+
+  -- Bound into the device attestation so one cannot be replayed into another session
+  nonce CHAR(64) NOT NULL,
+
+  platform VARCHAR(10) NOT NULL,
+  device_id VARCHAR(128) NOT NULL,
+  device_model VARCHAR(120),
+  app_version VARCHAR(40),
+
+  -- EXIF timestamps are local wall-clock with no zone; this makes them comparable
+  utc_offset_minutes INT NOT NULL,
+
+  attestation_status VARCHAR(20) NOT NULL DEFAULT 'skipped',
+  attestation_provider VARCHAR(20) NOT NULL DEFAULT 'none',
+
+  status VARCHAR(12) NOT NULL DEFAULT 'open',
+  started_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  expires_at TIMESTAMP NOT NULL,
+  closed_at TIMESTAMP,
+
+  CONSTRAINT chk_prug_capture_platform CHECK (platform IN ('ios','android','web')),
+  CONSTRAINT chk_prug_capture_status CHECK (status IN ('open','closed','expired','superseded')),
+  CONSTRAINT chk_prug_capture_offset CHECK (utc_offset_minutes BETWEEN -840 AND 840)
+);
+
+CREATE INDEX idx_prug_capture_sessions_carpet ON prug_capture_sessions(carpet_id, started_at DESC);
+CREATE INDEX idx_prug_capture_sessions_open ON prug_capture_sessions(carpet_id) WHERE status = 'open';
+
+CREATE TABLE prug_capture_frames (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  session_id UUID NOT NULL REFERENCES prug_capture_sessions(id) ON DELETE CASCADE,
+  shot_type VARCHAR(24) NOT NULL,
+
+  -- Single use: consumed even on a rejected upload, so the checks cannot be probed
+  token CHAR(64) NOT NULL UNIQUE,
+  issued_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  expires_at TIMESTAMP NOT NULL,
+  consumed_at TIMESTAMP,
+  photo_id UUID,
+
+  -- Time between issuing the token and the photo arriving
+  latency_ms INT,
+  capture_verified BOOLEAN NOT NULL DEFAULT false
+);
+
+CREATE INDEX idx_prug_capture_frames_session ON prug_capture_frames(session_id);
+CREATE INDEX idx_prug_capture_frames_token ON prug_capture_frames(token);
+
+
+-- ============================================================================
 -- PHOTOS
 -- ============================================================================
 
@@ -85,6 +145,10 @@ CREATE TABLE prug_photos (
   findings JSONB NOT NULL DEFAULT '[]'::jsonb,
   is_public BOOLEAN NOT NULL DEFAULT true,
 
+  -- Live-capture provenance
+  capture_session_id UUID REFERENCES prug_capture_sessions(id) ON DELETE SET NULL,
+  capture_verified BOOLEAN NOT NULL DEFAULT false,
+
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
   UNIQUE(carpet_id, sha256)
@@ -99,6 +163,10 @@ CREATE INDEX idx_prug_photos_band3 ON prug_photos(band3) WHERE band3 IS NOT NULL
 
 ALTER TABLE prug_carpets
   ADD CONSTRAINT fk_prug_cover_photo FOREIGN KEY (cover_photo_id)
+  REFERENCES prug_photos(id) ON DELETE SET NULL;
+
+ALTER TABLE prug_capture_frames
+  ADD CONSTRAINT fk_prug_frame_photo FOREIGN KEY (photo_id)
   REFERENCES prug_photos(id) ON DELETE SET NULL;
 
 
@@ -246,6 +314,8 @@ CREATE INDEX idx_prug_tokens_document_hash ON prug_tokens(document_hash);
 -- ============================================================================
 
 COMMENT ON TABLE prug_carpets IS 'Registered handwoven carpets with their AI-extracted identity document';
+COMMENT ON TABLE prug_capture_sessions IS 'One live photography sitting; frame tokens are only issued inside an open session';
+COMMENT ON TABLE prug_capture_frames IS 'Single-use permission to upload one photo, timestamped so gallery imports fail the window check';
 COMMENT ON TABLE prug_photos IS 'Guided capture set; sha256 for exact duplicates, dhash/phash for perceptual matching';
 COMMENT ON TABLE prug_forensic_reports IS 'Fraud-detection runs: metadata, cross-photo, registry and vision findings';
 COMMENT ON TABLE prug_ownership_records IS 'Chain of custody; verified=false marks owners declared but not checked by Prug';

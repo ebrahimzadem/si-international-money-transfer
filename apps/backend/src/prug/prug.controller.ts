@@ -28,10 +28,14 @@ import {
   CreateCarpetDto,
   CreateTransferDto,
   DeclareOwnerDto,
+  IssueFrameTokenDto,
+  OpenCaptureSessionDto,
   TokenizeDto,
   UpdateProfileDto,
   UploadPhotoDto,
 } from './dto/prug.dto';
+import { CaptureSessionService } from './capture/capture-session.service';
+import { DeviceAttestationService } from './capture/device-attestation.service';
 import {
   MAX_PHOTOS,
   MIN_PHOTOS,
@@ -61,6 +65,8 @@ export class PrugController {
     private readonly ownershipService: OwnershipService,
     private readonly kycService: PrugKycService,
     private readonly repository: PrugRepository,
+    private readonly captureSessions: CaptureSessionService,
+    private readonly attestation: DeviceAttestationService,
   ) {}
 
   /** The guided capture plan a client renders before the first photo. */
@@ -71,6 +77,11 @@ export class PrugController {
       maxPhotos: MAX_PHOTOS,
       requiredPhotos: REQUIRED_PHOTO_COUNT,
       shots: SHOT_LIST,
+      // Clients must use the in-app camera; gallery imports are refused.
+      captureMode: this.captureSessions.captureMode,
+      attestationMode: this.attestation.attestationMode,
+      acceptedFormats: ['image/jpeg', 'image/png'],
+      recommendedLongEdgePx: 2576,
     };
   }
 
@@ -125,6 +136,70 @@ export class PrugController {
   // PHOTOS
   // ==========================================================================
 
+  // ==========================================================================
+  // CAPTURE SESSIONS — photos must be taken live in the app
+  // ==========================================================================
+
+  /**
+   * Open a capture session before photographing a carpet. The client declares
+   * its device and UTC offset, and may present a device attestation bound to
+   * the returned nonce.
+   */
+  @Post('carpets/:carpetId/capture-sessions')
+  async openCaptureSession(
+    @Request() req,
+    @Param('carpetId') carpetId: string,
+    @Body() dto: OpenCaptureSessionDto,
+  ) {
+    await this.prugService.getOwnedCarpet(req.user.id, carpetId);
+
+    const session = await this.captureSessions.openSession({
+      carpetId,
+      userId: req.user.id,
+      ...dto,
+    });
+
+    return {
+      ...session,
+      captureMode: this.captureSessions.captureMode,
+      attestationMode: this.attestation.attestationMode,
+    };
+  }
+
+  /**
+   * Ask for the token covering the next frame. Call this immediately before
+   * opening the shutter — the photo's own timestamp must fall after it.
+   */
+  @Post('capture-sessions/:sessionId/frames')
+  async issueFrameToken(
+    @Request() req,
+    @Param('sessionId') sessionId: string,
+    @Body() dto: IssueFrameTokenDto,
+  ) {
+    return this.captureSessions.issueFrameToken({
+      sessionId,
+      userId: req.user.id,
+      shotType: dto.shotType,
+    });
+  }
+
+  @Get('capture-sessions/:sessionId')
+  async getCaptureSession(
+    @Request() req,
+    @Param('sessionId') sessionId: string,
+  ) {
+    return this.captureSessions.getSession(sessionId, req.user.id);
+  }
+
+  @Post('capture-sessions/:sessionId/close')
+  async closeCaptureSession(
+    @Request() req,
+    @Param('sessionId') sessionId: string,
+  ) {
+    await this.captureSessions.closeSession(sessionId, req.user.id);
+    return { closed: true };
+  }
+
   @Post('carpets/:carpetId/photos')
   async addPhoto(
     @Request() req,
@@ -135,6 +210,7 @@ export class PrugController {
       shotType: dto.shotType,
       data: decodeBase64Image(dto.data),
       isPublic: dto.isPublic,
+      frameToken: dto.frameToken,
     });
   }
 

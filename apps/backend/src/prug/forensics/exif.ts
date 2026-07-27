@@ -17,6 +17,12 @@ export interface ExifData {
   modifyDate?: string;
   dateTimeOriginal?: string;
   dateTimeDigitized?: string;
+  /**
+   * UTC offset of `dateTimeOriginal`, e.g. "+03:30". EXIF timestamps are local
+   * wall-clock with no zone, so without this (or a client-declared offset) a
+   * capture time cannot be compared against server time.
+   */
+  offsetTimeOriginal?: string;
   orientation?: number;
   /** Dimensions the camera recorded, which may differ from the JPEG frame. */
   pixelXDimension?: number;
@@ -48,6 +54,7 @@ const TAG = {
   ISO: 0x8827,
   DATE_TIME_ORIGINAL: 0x9003,
   DATE_TIME_DIGITIZED: 0x9004,
+  OFFSET_TIME_ORIGINAL: 0x9011,
   FOCAL_LENGTH: 0x920a,
   PIXEL_X: 0xa002,
   PIXEL_Y: 0xa003,
@@ -272,6 +279,12 @@ export function parseExif(buf: Buffer): ExifData | null {
           entry.count,
         );
         break;
+      case TAG.OFFSET_TIME_ORIGINAL:
+        exif.offsetTimeOriginal = reader.ascii(
+          dataOffset(reader, entry),
+          entry.count,
+        );
+        break;
       case TAG.ORIENTATION:
         exif.orientation = readNumber(reader, entry);
         break;
@@ -343,6 +356,41 @@ export function parseExif(buf: Buffer): ExifData | null {
   }
 
   return exif;
+}
+
+/** Parse an EXIF UTC offset ("+03:30", "-08:00") into minutes. */
+export function parseExifOffset(value?: string): number | null {
+  if (!value) return null;
+  const match = value.trim().match(/^([+-])(\d{2}):?(\d{2})$/);
+  if (!match) return null;
+
+  const [, sign, hours, minutes] = match;
+  const total = Number(hours) * 60 + Number(minutes);
+  return sign === '-' ? -total : total;
+}
+
+/**
+ * Resolve when a photo was actually taken, as an absolute instant.
+ *
+ * EXIF stores local wall-clock time with no zone. `OffsetTimeOriginal` carries
+ * the zone when the camera wrote it; otherwise the caller supplies the device's
+ * offset (the capture session records it). With neither, the instant is
+ * unknowable and this returns null rather than guessing UTC.
+ */
+export function resolveCaptureInstant(
+  exif: Pick<ExifData, 'dateTimeOriginal' | 'offsetTimeOriginal'> | null,
+  fallbackOffsetMinutes?: number | null,
+): Date | null {
+  if (!exif?.dateTimeOriginal) return null;
+
+  const wallClock = parseExifDate(exif.dateTimeOriginal);
+  if (!wallClock) return null;
+
+  const offsetMinutes =
+    parseExifOffset(exif.offsetTimeOriginal) ?? fallbackOffsetMinutes;
+  if (offsetMinutes === null || offsetMinutes === undefined) return null;
+
+  return new Date(wallClock.getTime() - offsetMinutes * 60_000);
 }
 
 /** EXIF timestamps use "YYYY:MM:DD HH:MM:SS" rather than ISO-8601. */

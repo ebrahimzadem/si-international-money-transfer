@@ -11,6 +11,8 @@ import { PhotoStorageService } from './storage/photo-storage.service';
 import { PrugKycService } from './kyc/prug-kyc.service';
 import { OwnershipService } from './ownership/ownership.service';
 import { TokenizationService } from './tokenization/tokenization.service';
+import { CaptureSessionService } from './capture/capture-session.service';
+import { DeviceAttestationService } from './capture/device-attestation.service';
 
 /**
  * Prug — carpet identity, fraud detection, provenance and tokenisation.
@@ -32,6 +34,8 @@ import { TokenizationService } from './tokenization/tokenization.service';
     PrugKycService,
     OwnershipService,
     TokenizationService,
+    CaptureSessionService,
+    DeviceAttestationService,
   ],
   exports: [PrugService],
 })
